@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Competition Terms | Community Wishes (Leicester)</title>
+<meta name="theme-color" content="#0a1226">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comp/comp.css">
+<style>.terms{max-width:820px;margin:auto;padding:40px 20px;line-height:1.75;color:var(--cw-ink)}.terms h2{font-family:Fraunces,serif;font-size:1.4rem;margin:34px 0 8px}.terms li{margin:6px 0}.terms .box{background:#fff;border:1px solid var(--cw-line);border-radius:18px;padding:20px 22px}</style>
+</head>
+<body class="cw-page">
+<header class="cw-top"><div class="in">
+ <a class="cw-logo" href="./"><i>★</i><b>Community Wishes<small>LEICESTER</small></b></a>
+ <nav><a href="./" class="hide-m">Home</a><a href="competitions.html">Competitions</a><a href="terms.html" class="on">Terms</a></nav>
+</div></header>
+<section class="cw-hero"><div class="cw-wrap"><h1>Competition terms</h1><p>Please read these terms before entering. By entering any competition you agree to them.</p></div></section>
+<div class="terms">
+ <p class="box"><b>Promoter:</b> <span data-s="charity"></span>, registered charity number <span data-s="charityNo"></span>. Contact: <a data-s-mail="email"></a> · <span data-s="phone"></span>.<br><small style="color:var(--cw-ink2)">These terms are a starting template. The charity's trustees should review them (ideally with legal advice) before taking real entries.</small></p>
+
+ <h2>1. Eligibility</h2>
+ <ul><li>Open to UK residents aged 18 or over, except trustees of the charity and their immediate households.</li>
+ <li>Entrants must not exceed the per-person ticket limit shown on each competition (paid and free entries combined).</li></ul>
+
+ <h2>2. How to enter</h2>
+ <ul><li>Choose a competition, select your tickets, answer the question and provide your details.</li>
+ <li>Tickets are reserved and a payment reference is shown. Paid entries are only valid once payment is received. Unpaid reservations are released after the hold period shown at checkout.</li>
+ <li>You must answer the competition question correctly. Entries with an incorrect answer are not entered into the draw and are not eligible for instant wins. No refunds are given for incorrect answers.</li></ul>
+
+ <h2 id="free">3. Free entry route</h2>
+ <div class="box"><p>You can enter any competition for free by post. Send an unenclosed postcard (first or second class postage) with:</p>
+ <ul><li>the name of the competition,</li><li>your answer to the question,</li><li>your full name, address, phone number and email,</li></ul>
+ <p>to: <b data-s="postalAddress"></b></p>
+ <p>One entry per postcard. Postal entries must arrive before the competition closes. Each valid postal entry receives one ticket number at random and is treated in exactly the same way as a paid entry, including for instant wins (subject to tickets still being available).</p></div>
+
+ <h2>4. Instant wins</h2>
+ <ul><li>Some competitions include instant-win prizes linked to hidden ticket numbers that are set before the competition opens.</li>
+ <li>If one of your allocated ticket numbers matches an instant-win number, you will be told on screen. The prize is released once payment is confirmed (or straight away for a valid free entry).</li></ul>
+
+ <h2>5. The draw</h2>
+ <ul><li>Each competition is drawn either <b>automatically</b> or <b>live</b>, as stated on the competition page.</li>
+ <li>Automatic draws use a cryptographically secure random number generator to select one ticket from all eligible tickets (paid or valid free entries, with a correct answer).</li>
+ <li>Live draws are carried out by a member of the charity's team, usually streamed on our Facebook page, using a random number generator or a physical draw.</li>
+ <li>If a competition does not sell out, the draw still goes ahead on the closing date unless the charity extends the closing date. Any extension will be announced on the competition page.</li></ul>
+
+ <h2>6. Winners & prizes</h2>
+ <ul><li>Winners are contacted using the details provided within 7 days of the draw. If a winner cannot be contacted within 14 days, the charity may redraw.</li>
+ <li>Winners' first name, initial and ticket number may be published. By entering you agree to this.</li>
+ <li>Prizes are as described. No cash alternative unless stated. The charity may substitute a prize of equal or greater value if a prize becomes unavailable.</li></ul>
+
+ <h2>7. Your data</h2>
+ <p>We use your details only to run the competition, contact winners and keep financial records as required by law. We will not sell your data.</p>
+
+ <h2>8. General</h2>
+ <ul><li>The charity's decision on all matters relating to the competitions is final.</li>
+ <li>The charity may cancel a competition for reasons outside its control. All paid entrants will then be refunded.</li>
+ <li>These terms are governed by the laws of England and Wales.</li></ul>
+</div>
+<footer class="cw-foot"><div class="cw-wrap"><p><b style="color:#fff" data-s="charity"></b> · Registered charity <span data-s="charityNo"></span></p></div></footer>
+<script src="comp/store.js"></script>
+<script>
+function fill(){const s=CW.state.settings;document.querySelectorAll('[data-s]').forEach(e=>e.textContent=s[e.dataset.s]||'');document.querySelectorAll('[data-s-mail]').forEach(e=>{e.textContent=s.email;e.href='mailto:'+s.email})}
+fill();CW.syncPublished().then(fill);
+</script>
+</body>
+</html>

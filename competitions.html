@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Competitions | Community Wishes (Leicester)</title>
+<meta name="description" content="Charity prize competitions from Community Wishes (Leicester). Win prizes, grant wishes. Registered charity 1196244.">
+<meta name="theme-color" content="#0a1226">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comp/comp.css">
+</head>
+<body class="cw-page">
+<header class="cw-top"><div class="in">
+ <a class="cw-logo" href="./"><i>★</i><b>Community Wishes<small>LEICESTER</small></b></a>
+ <nav><a href="./" class="hide-m">Home</a><a href="competitions.html" class="on">Competitions</a><a href="terms.html">Terms</a></nav>
+</div></header>
+<div id="banner"></div>
+<main id="app"></main>
+<footer class="cw-foot"><div class="cw-wrap" id="foot"></div></footer>
+
+<div class="cw-modal" id="modal" role="dialog" aria-modal="true" aria-labelledby="mt"><div class="box"><button class="x" aria-label="Close">✕</button><div id="mbody"></div></div></div>
+<canvas class="cw-confetti" id="confetti" aria-hidden="true"></canvas>
+
+<script src="comp/store.js"></script>
+<script>
+const {esc,money,art,phase,PHASE_LABEL,soldCount,takenTickets,countdownParts}=CW;
+const app=document.getElementById('app'), S=()=>CW.state, st=()=>CW.state.settings;
+const params=new URLSearchParams(location.search);
+let picked=new Set(), qty=1, page=0, filter='live', mode='dip';
+
+function foot(){document.getElementById('foot').innerHTML=`<p><b style="color:#fff">${esc(st().charity)}</b> · Registered charity ${esc(st().charityNo)}</p>
+<p style="margin-top:8px">Prize competitions with a free entry route. 18+ only, UK residents. <a href="terms.html">Terms & free entry</a> · <a href="mailto:${esc(st().email)}">${esc(st().email)}</a></p>`;
+document.getElementById('banner').innerHTML=st().previewMode?'<div class="cw-banner">Preview mode – competitions shown are examples and are not yet open for real entries.</div>':'';}
+
+/* ---------------- list ---------------- */
+function list(){
+  const comps=S().competitions.filter(c=>c.status!=='draft');
+  const groups={live:c=>['live','soon'].includes(phase(c)),closed:c=>['closed','soldout','paused'].includes(phase(c)),drawn:c=>phase(c)==='drawn',all:()=>true};
+  const shown=comps.filter(groups[filter]).sort((a,b)=>(a.endAt||0)-(b.endAt||0));
+  document.title='Competitions | '+st().charity;
+  app.innerHTML=`<section class="cw-hero"><div class="cw-wrap"><h1>Win prizes. Grant wishes.</h1>
+   <p>Every ticket you buy helps ${esc(st().charity)} grant wishes for people across Leicester facing financial hardship, illness or disability.</p></div></section>
+   <div class="cw-wrap"><div class="cw-filter">${[['live','Live & upcoming'],['closed','Closed'],['drawn','Winners'],['all','All']].map(([k,l])=>`<button data-f="${k}" aria-pressed="${filter===k}">${l}</button>`).join('')}</div>
+   ${shown.length?`<div class="cw-list-grid">${shown.map(card).join('')}</div>`:`<div class="cw-empty"><h2 class="cw-section-t">Nothing here yet</h2><p>Check back soon – new competitions are added regularly.</p></div>`}</div>`;
+  app.querySelectorAll('.cw-filter button').forEach(b=>b.onclick=()=>{filter=b.dataset.f;list()});
+}
+function card(c){
+  const p=phase(c),sold=soldCount(c.id),pct=Math.min(100,Math.round(sold/c.maxTickets*100)),iw=(c.instantWins||[]).filter(w=>!w.wonBy).length;
+  return `<a class="cw-card" href="?id=${encodeURIComponent(c.id)}"><div class="pic">${art(c)}<div class="tag"><span class="cw-tag ${p==='live'?'live':''}">${PHASE_LABEL[p]}</span>${iw?`<span class="cw-tag iw">⚡ ${iw} instant</span>`:''}</div></div>
+  <div class="ci"><h4>${esc(c.title)}</h4>${p==='drawn'&&c.winner?`<div style="color:#ffe9a8">🏆 ${esc(c.winner.name.split(' ')[0])} – ticket #${c.winner.ticket}</div>`:`<div class="cw-bar"><i style="width:${pct}%"></i></div><div class="cw-barl" style="margin-top:0"><span>${sold}/${c.maxTickets} sold</span><span data-cds="${c.endAt}"></span></div>`}
+  <div class="meta"><span>Worth ${money(c.prizeValue)}</span><b>${money(c.price)}</b></div></div></a>`;
+}
+
+/* ---------------- detail ---------------- */
+function detail(c){
+  const p=phase(c),sold=soldCount(c.id),left=c.maxTickets-sold,pct=Math.min(100,Math.round(sold/c.maxTickets*100));
+  const max=Math.max(1,Math.min(c.maxPerPerson||left,left));
+  qty=Math.min(Math.max(1,qty),max);
+  document.title=c.title+' | '+st().charity;
+  const open=p==='live';
+  app.innerHTML=`<section class="cw-hero"><div class="cw-wrap"><p style="margin-bottom:10px"><a href="competitions.html" style="color:#f5c451;text-decoration:none">← All competitions</a></p>
+   <span class="cw-tag ${p==='live'?'live':''}">${PHASE_LABEL[p]}</span><h1 style="margin-top:14px">${esc(c.title)}</h1>${c.subtitle?`<p>${esc(c.subtitle)}</p>`:''}</div></section>
+  <div class="cw-wrap"><div class="cw-detail">
+   <div style="display:grid;gap:22px;align-content:start">
+    <div class="media">${art(c,true)}</div>
+    <div class="cw-panel"><h2>The prize</h2><p style="font-weight:600;font-size:1.1rem">${esc(c.prize||c.title)} <span style="color:var(--cw-brand)">· worth ${money(c.prizeValue)}</span></p>
+     ${c.description?`<p style="margin-top:10px;color:var(--cw-ink2);white-space:pre-line">${esc(c.description)}</p>`:''}
+     <ul style="margin:16px 0 0;padding-left:18px;color:var(--cw-ink2);line-height:1.9">
+      <li>${c.maxTickets} tickets · max ${c.maxPerPerson} per person</li>
+      <li>${c.drawMode==='live'?'Drawn <b>live</b> by our team (streamed on Facebook)':'Drawn <b>automatically</b> & randomly when the timer ends'}</li>
+      <li>Closes ${new Date(c.endAt).toLocaleString('en-GB',{weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</li>
+      <li>Free postal entry available – <a href="terms.html#free">how to enter for free</a></li></ul></div>
+    ${(c.instantWins||[]).length?`<div class="cw-panel"><h2>⚡ Instant wins</h2><p style="color:var(--cw-ink2);margin:0 0 12px">If one of your ticket numbers matches a hidden instant-win number, you win straight away (with a correct answer).</p>
+     <div class="cw-iwlist">${c.instantWins.map(w=>`<div class="${w.wonBy?'won':''}"><span>${esc(w.prize)}${w.value?` <small style="color:var(--cw-ink2)">(${money(w.value)})</small>`:''}</span><span class="st">${w.wonBy?`Won – #${w.ticket} ${esc((w.wonName||'').split(' ')[0])}`:'Still to win'}</span></div>`).join('')}</div></div>`:''}
+   </div>
+   <div style="display:grid;gap:22px;align-content:start">
+    ${p==='drawn'&&c.winner?`<div class="cw-panel"><h2>🏆 Winner</h2><div class="cw-winbox"><div class="tk">#${c.winner.ticket}</div><div><b>${esc(c.winner.name.split(' ')[0])} ${esc((c.winner.name.split(' ')[1]||'').charAt(0))}.</b><br><small>${esc(c.winner.method)} · ${new Date(c.winner.at).toLocaleString('en-GB')} · from ${c.winner.poolSize} eligible tickets</small></div></div></div>`:''}
+    <div class="cw-panel dk"><div class="cw-row" style="justify-content:space-between"><div class="cw-price"><b>${money(c.price)}</b><span>per ticket</span></div><span style="color:#aab4c6">Prize worth <b style="color:#f5c451">${money(c.prizeValue)}</b></span></div>
+     ${['live','soon'].includes(p)?`<div style="margin-top:16px;font-size:.76rem;letter-spacing:.16em;text-transform:uppercase;color:#aab4c6">${p==='soon'?'Opens in':'Closes in'}</div><div class="cw-cd" style="margin-top:8px" data-cd="${p==='soon'?c.startAt:c.endAt}"></div>`:''}
+     <div style="margin-top:16px"><div class="cw-bar"><i style="width:${pct}%"></i></div><div class="cw-barl"><span>${sold} sold (${pct}%)</span><span>${left} remaining</span></div></div></div>
+    ${open?`<div class="cw-panel" id="enter"><h2>1 · Your tickets</h2>
+     <div class="cw-tabs"><button data-m="dip" aria-pressed="${mode==='dip'}">🎲 Lucky dip</button><button data-m="pick" aria-pressed="${mode==='pick'}">🔢 Pick my numbers</button></div>
+     <div id="tickets"></div>
+     <div class="cw-total"><span id="tcount"></span><b id="ttotal"></b></div>
+     <h2 style="margin-top:22px">2 · Answer the question</h2>
+     ${c.question&&c.question.q?`<div class="cw-q"><p style="font-weight:600">${esc(c.question.q)}</p>${c.question.options.map((o,i)=>o?`<label><input type="radio" name="ans" value="${i}"> ${esc(o)}</label>`:'').join('')}</div>`:'<p style="color:var(--cw-ink2)">No question for this competition.</p>'}
+     <h2 style="margin-top:22px">3 · Your details</h2>
+     <form class="cw-f" id="ef" novalidate>
+      <label>Full name<input name="name" autocomplete="name" required></label>
+      <div class="two"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Phone<input name="phone" type="tel" autocomplete="tel"></label></div>
+      <label class="cw-check"><input type="checkbox" name="age" required> I am 18 or over and a UK resident</label>
+      <label class="cw-check"><input type="checkbox" name="terms" required> I agree to the <a href="terms.html" target="_blank">competition terms</a></label>
+      <div class="cw-err" id="err" role="alert"></div>
+      <button class="cw-btn p" style="width:100%;padding:16px;font-size:1.05rem" id="go">Reserve my tickets</button>
+      <p style="font-size:.84rem;color:var(--cw-ink2);text-align:center">You'll get a payment reference. Tickets are held for ${st().holdHours} hours while we receive your payment.</p>
+     </form></div>`:`<div class="cw-panel" style="text-align:center"><h2>${p==='soon'?'Opening soon':p==='drawn'?'This competition has finished':'Entries are closed'}</h2><p style="color:var(--cw-ink2)">${p==='soon'?'Come back when the timer hits zero.':p==='drawn'?'Thank you to everyone who entered – every ticket helps grant a wish.':'The draw will take place soon. Good luck!'}</p><a class="cw-btn p" href="competitions.html" style="margin-top:14px">See other competitions</a></div>`}
+   </div></div></div>`;
+  if(open)wireEntry(c);
+  tick();
+}
+
+function wireEntry(c){
+  app.querySelectorAll('.cw-tabs [data-m]').forEach(b=>b.onclick=()=>{mode=b.dataset.m;picked.clear();detail(c);document.getElementById('enter').scrollIntoView({block:'start'})});
+  renderTickets(c);
+  document.getElementById('ef').onsubmit=e=>{e.preventDefault();submit(c)};
+}
+function maxFor(c){const left=c.maxTickets-soldCount(c.id);return Math.max(1,Math.min(c.maxPerPerson||left,left))}
+function renderTickets(c){
+  const box=document.getElementById('tickets'),max=maxFor(c);
+  if(mode==='dip'){
+    const quick=[1,5,10,25,50,100].filter(n=>n<=max);
+    box.innerHTML=`<div class="cw-qty"><button type="button" data-d="-1" aria-label="Fewer">−</button><input type="number" id="q" min="1" max="${max}" value="${qty}" aria-label="Number of tickets"><button type="button" data-d="1" aria-label="More">+</button><input type="range" id="qr" min="1" max="${max}" value="${qty}" aria-label="Tickets slider"></div>
+     <div class="cw-quick">${quick.map(n=>`<button type="button" data-n="${n}">${n} ticket${n>1?'s':''}</button>`).join('')}</div>
+     <p style="font-size:.86rem;color:var(--cw-ink2);margin-top:10px">Your numbers are picked at random from the tickets still available.</p>`;
+    const set=v=>{qty=Math.min(max,Math.max(1,+v||1));box.querySelector('#q').value=qty;box.querySelector('#qr').value=qty;totals(c)};
+    box.querySelectorAll('[data-d]').forEach(b=>b.onclick=()=>set(qty+ +b.dataset.d));
+    box.querySelectorAll('[data-n]').forEach(b=>b.onclick=()=>set(b.dataset.n));
+    box.querySelector('#q').oninput=e=>set(e.target.value);box.querySelector('#qr').oninput=e=>set(e.target.value);
+  }else{
+    const taken=takenTickets(c.id),per=100,pages=Math.ceil(c.maxTickets/per);page=Math.min(page,pages-1);
+    const from=page*per+1,to=Math.min(c.maxTickets,from+per-1);let nums='';
+    for(let i=from;i<=to;i++)nums+=`<button type="button" data-t="${i}" class="${picked.has(i)?'sel':''}" ${taken.has(i)?'disabled aria-label="Ticket '+i+' taken"':''}>${i}</button>`;
+    box.innerHTML=`${pages>1?`<div class="cw-tabs">${Array.from({length:pages},(_,k)=>`<button type="button" data-pg="${k}" aria-pressed="${k===page}">${k*per+1}–${Math.min(c.maxTickets,(k+1)*per)}</button>`).join('')}</div>`:''}
+     <div class="cw-nums">${nums}</div>
+     <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap"><button type="button" class="cw-btn o sm" id="rnd">+ Random number</button><button type="button" class="cw-btn o sm" id="clr">Clear</button></div>
+     <div class="cw-chips" style="margin-top:10px">${[...picked].sort((a,b)=>a-b).map(n=>`<span class="cw-chip">#${n}</span>`).join('')}</div>`;
+    box.querySelectorAll('[data-pg]').forEach(b=>b.onclick=()=>{page=+b.dataset.pg;renderTickets(c)});
+    box.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{const n=+b.dataset.t;if(picked.has(n))picked.delete(n);else{if(picked.size>=max)return alertErr(`Maximum ${max} tickets.`);picked.add(n)}renderTickets(c)});
+    box.querySelector('#rnd').onclick=()=>{if(picked.size>=max)return alertErr(`Maximum ${max} tickets.`);const t=takenTickets(c.id);picked.forEach(n=>t.add(n));const free=[];for(let i=1;i<=c.maxTickets;i++)if(!t.has(i))free.push(i);if(!free.length)return;picked.add(free[CW.randInt(free.length)]);renderTickets(c)};
+    box.querySelector('#clr').onclick=()=>{picked.clear();renderTickets(c)};
+  }
+  totals(c);
+}
+function alertErr(m){const e=document.getElementById('err');if(e)e.textContent=m}
+function totals(c){const n=mode==='dip'?qty:picked.size;document.getElementById('tcount').textContent=`${n} ticket${n===1?'':'s'} × ${money(c.price)}`;document.getElementById('ttotal').textContent=money(n*c.price);alertErr('')}
+
+function submit(c){
+  const f=document.getElementById('ef'),d=Object.fromEntries(new FormData(f));const ans=app.querySelector('input[name=ans]:checked');
+  if(c.question&&c.question.q&&!ans)return alertErr('Please answer the question.');
+  if(!d.name||!d.email||!/^\S+@\S+\.\S+$/.test(d.email))return alertErr('Please enter your name and a valid email.');
+  if(!d.age||!d.terms)return alertErr('Please confirm you are 18+ and agree to the terms.');
+  const tickets=mode==='dip'?CW.luckyDip(c.id,qty):[...picked];
+  if(!tickets.length)return alertErr('Please choose at least one ticket.');
+  try{
+    const e=CW.createEntry({compId:c.id,name:d.name,email:d.email,phone:d.phone,tickets,answerIdx:ans?ans.value:-1});
+    picked.clear();showConfirm(c,e);
+  }catch(err){alertErr(err.message);if(mode==='pick')renderTickets(c)}
+}
+
+function showConfirm(c,e){
+  const wins=(c.instantWins||[]).filter(w=>e.instantWins.includes(w.id));
+  const s=st();
+  document.getElementById('mbody').innerHTML=`<h2 id="mt" style="font-family:Fraunces,serif;font-size:1.7rem;margin:0 0 6px">${wins.length?'You\'re an instant winner!':'Tickets reserved!'}</h2>
+   ${wins.map(w=>`<div class="cw-win"><div style="font-size:2.6rem">⚡</div><h3>${esc(w.prize)}</h3><p>Ticket #${w.ticket} matched an instant-win number! We'll be in touch once your payment is received.</p></div>`).join('')}
+   <p style="color:var(--cw-ink2)">Thank you ${esc(e.name.split(' ')[0])}! Your tickets for <b>${esc(c.title)}</b>:</p>
+   <div class="cw-chips" style="margin:10px 0 16px">${e.tickets.map(t=>`<span class="cw-chip ${wins.some(w=>w.ticket===t)?'w':''}">#${t}</span>`).join('')}</div>
+   ${e.correct?'':'<p class="cw-err">Your answer was not correct, so these tickets will not be included in the draw.</p>'}
+   ${e.amount>0?`<div style="background:var(--cw-bg);border-radius:16px;padding:18px;margin-top:8px"><b>Complete your payment of ${money(e.amount)}</b>
+    <table style="width:100%;margin-top:10px;font-size:.95rem;border-collapse:collapse">
+    <tr><td style="color:var(--cw-ink2);padding:3px 0">Account name</td><td><b>${esc(s.bankName)}</b></td></tr>
+    <tr><td style="color:var(--cw-ink2);padding:3px 0">Sort code</td><td><b>${esc(s.sortCode)}</b></td></tr>
+    <tr><td style="color:var(--cw-ink2);padding:3px 0">Account no.</td><td><b>${esc(s.accountNo)}</b></td></tr>
+    <tr><td style="color:var(--cw-ink2);padding:3px 0">Reference</td><td><b style="color:var(--cw-brand);font-size:1.1rem">${esc(e.ref)}</b> <button class="cw-btn o sm" id="cp">Copy</button></td></tr></table>
+    <p style="font-size:.84rem;color:var(--cw-ink2);margin-top:10px">Please use the reference exactly. Your tickets are held for ${s.holdHours} hours. You can also pay cash to a Community Wishes volunteer.</p></div>`:''}
+   <button class="cw-btn p" style="width:100%;margin-top:18px" id="done">Done</button>`;
+  openModal();
+  const cp=document.getElementById('cp');if(cp)cp.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(e.ref);cp.textContent='Copied ✓'};
+  document.getElementById('done').onclick=()=>{closeModal();route()};
+  if(wins.length)confetti();
+}
+const modal=document.getElementById('modal');
+function openModal(){modal.classList.add('open');document.body.style.overflow='hidden';modal.querySelector('.x').focus()}
+function closeModal(){modal.classList.remove('open');document.body.style.overflow=''}
+modal.querySelector('.x').onclick=()=>{closeModal();route()};
+addEventListener('keydown',e=>{if(e.key==='Escape'&&modal.classList.contains('open')){closeModal();route()}});
+
+function confetti(){if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;const cv=document.getElementById('confetti'),x=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;
+ const P=Array.from({length:180},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height*.5,vx:(Math.random()-.5)*4,vy:Math.random()*3+2,r:Math.random()*6+4,c:['#f5c451','#c0264f','#fff','#ffe9a8','#e0446e'][Math.random()*5|0],a:Math.random()*6}));let f=0;
+ (function loop(){x.clearRect(0,0,cv.width,cv.height);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.a+=.1;x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);x.restore()});if(++f<260)requestAnimationFrame(loop);else x.clearRect(0,0,cv.width,cv.height)})()}
+
+function tick(){
+  document.querySelectorAll('[data-cd]').forEach(el=>{const t=countdownParts(+el.dataset.cd-Date.now());el.innerHTML=[['d','Days'],['h','Hours'],['m','Mins'],['s','Secs']].map(([k,l])=>`<div><b>${String(t[k]).padStart(2,'0')}</b><small>${l}</small></div>`).join('');
+   if(+el.dataset.cd<=Date.now()&&!el.dataset.fired){el.dataset.fired=1;setTimeout(()=>{CW.runDueAutoDraws();route()},1200)}});
+  document.querySelectorAll('[data-cds]').forEach(el=>{const ms=+el.dataset.cds-Date.now();if(ms<=0){el.textContent='Closed';return}const t=countdownParts(ms);el.textContent=t.d?`${t.d}d ${t.h}h left`:`${t.h}h ${t.m}m left`});
+}
+setInterval(tick,1000);
+
+function route(){
+  CW.releaseExpired();CW.runDueAutoDraws();foot();
+  const id=params.get('id');
+  if(id){const c=CW.comp(id);if(c&&c.status!=='draft')return detail(c);app.innerHTML='<div class="cw-wrap cw-empty"><h2 class="cw-section-t">Competition not found</h2><a class="cw-btn p" href="competitions.html">See all competitions</a></div>';return}
+  list();
+}
+route();
+CW.syncPublished().then(ch=>{if(ch&&!modal.classList.contains('open')&&!document.activeElement.closest('#ef'))route()});
+</script>
+</body>
+</html>

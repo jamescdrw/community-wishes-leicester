@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Live Draw | Community Wishes</title>
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comp/comp.css">
+<style>
+body{margin:0;min-height:100vh;background:#0a1226;color:#fff;font-family:Inter,sans-serif;overflow:hidden;display:flex;flex-direction:column}
+body::before{content:"";position:fixed;inset:0;background:radial-gradient(ellipse 60% 60% at 20% 10%,rgba(192,38,79,.45),transparent),radial-gradient(ellipse 60% 60% at 85% 90%,rgba(245,196,81,.25),transparent);z-index:-1}
+.top{display:flex;justify-content:space-between;align-items:center;padding:18px 26px}
+.top .cw-logo b{font-size:1rem}
+.stage{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:20px}
+.stage h1{font-family:Cinzel,serif;font-size:clamp(1.6rem,4vw,3rem);margin:0 0 6px;background:linear-gradient(100deg,#c9922c,#ffe9a8,#fff,#f5c451,#c9922c);background-size:250%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:cwshine 6s linear infinite}
+.stage .sub{color:#c7cfdd;margin-bottom:34px;font-size:1.1rem}
+.reel{display:flex;gap:clamp(6px,1.4vw,16px);margin:10px 0 30px}
+.digit{width:clamp(64px,11vw,140px);height:clamp(96px,16vw,200px);border-radius:22px;background:linear-gradient(180deg,#1b2747,#0d1630);border:2px solid rgba(245,196,81,.35);box-shadow:0 20px 50px -20px #000,inset 0 0 30px rgba(0,0,0,.6);overflow:hidden;position:relative}
+.digit::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,18,38,.9),transparent 30%,transparent 70%,rgba(10,18,38,.9));pointer-events:none}
+.strip{position:absolute;left:0;right:0;top:0;will-change:transform}
+.strip span{display:grid;place-items:center;height:clamp(96px,16vw,200px);font:900 clamp(3.4rem,9vw,8rem) Cinzel,serif;color:#ffe9a8;text-shadow:0 0 30px rgba(245,196,81,.6)}
+.winner{min-height:120px}
+.winner .nm{font-family:Fraunces,serif;font-size:clamp(2rem,5vw,3.6rem);animation:pop .8s cubic-bezier(.2,1.4,.4,1)}
+.winner small{display:block;color:#aab4c6;margin-top:6px}
+@keyframes pop{from{transform:scale(.4);opacity:0}}
+.ctrl{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:18px}
+.ctrl .cw-btn{font-size:1.1rem;padding:16px 30px}
+.pool{color:#8f9ab0;font-size:.9rem;margin-top:16px}
+.lock{max-width:420px;margin:auto;text-align:center}
+.count{font:900 clamp(6rem,20vw,14rem) Cinzel,serif;color:#f5c451;animation:pop .9s}
+.manual{display:none;gap:8px;justify-content:center;margin-top:14px}
+.manual input{font:700 1.2rem Inter;padding:12px;border-radius:12px;border:0;width:140px;text-align:center}
+</style>
+</head>
+<body>
+<div class="top"><span class="cw-logo"><i>★</i><b>Community Wishes<small>LIVE DRAW</small></b></span><button class="cw-btn gh sm" id="fs">⛶ Full screen</button></div>
+<div class="stage" id="stage"></div>
+<canvas class="cw-confetti" id="confetti"></canvas>
+<script src="comp/store.js"></script>
+<script>
+const {esc,money}=CW,stage=document.getElementById('stage');
+const id=new URLSearchParams(location.search).get('id');
+const admin=CW.isAdmin();
+document.getElementById('fs').onclick=()=>document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{});
+
+function view(){
+  const c=CW.comp(id);
+  if(!admin){stage.innerHTML='<div class="lock"><h1>Admin only</h1><p class="sub">Please log in to the admin area first, then open the live draw from there.</p><a class="cw-btn g" href="admin.html">Go to admin</a></div>';return}
+  if(!c){stage.innerHTML='<h1>Competition not found</h1>';return}
+  const pool=CW.eligible(c.id),digits=String(c.maxTickets).length;
+  stage.innerHTML=`<h1>${esc(c.title)}</h1><div class="sub">Prize worth ${money(c.prizeValue)} · ${pool.length} eligible ticket${pool.length===1?'':'s'}</div>
+   <div class="reel" id="reel">${Array.from({length:digits},()=>`<div class="digit"><div class="strip">${Array.from({length:10},(_,i)=>`<span>${i}</span>`).join('')}</div></div>`).join('')}</div>
+   <div class="winner" id="win">${c.winner?winnerHTML(c.winner):''}</div>
+   <div class="ctrl" id="ctrl">${c.winner?`<a class="cw-btn gh" href="admin.html#draws">Back to admin</a>`:
+     pool.length?`<button class="cw-btn g" id="go">🎲 Draw the winner</button><button class="cw-btn gh" id="man">Physical draw – enter number</button>`:'<p>No eligible (paid, correct-answer) tickets yet.</p>'}</div>
+   <div class="manual" id="mbox"><input id="mnum" type="number" min="1" max="${c.maxTickets}" placeholder="Ticket #"><button class="cw-btn g" id="mgo">Confirm winner</button></div>
+   <div class="pool">${c.winner?'Winner recorded in the audit log.':'Only paid tickets with a correct answer are included. Every draw is recorded in the audit log.'}</div>`;
+  if(c.winner)setReel(c.winner.ticket,digits,false);
+  const go=document.getElementById('go');
+  if(go)go.onclick=()=>countdown(()=>spin(c));
+  const man=document.getElementById('man');
+  if(man)man.onclick=()=>{document.getElementById('mbox').style.display='flex';document.getElementById('mnum').focus()};
+  const mgo=document.getElementById('mgo');
+  if(mgo)mgo.onclick=()=>{try{const w=CW.recordWinner(c.id,+document.getElementById('mnum').value,'Live draw (physical)');setReel(w.ticket,digits,true,()=>reveal(w))}catch(e){alert(e.message)}};
+}
+function winnerHTML(w){return `<div class="nm">🏆 ${esc(w.name)}</div><small>Ticket #${w.ticket} · ${esc(w.ref)} · ${new Date(w.at).toLocaleString('en-GB')}</small>`}
+function countdown(done){
+  const ctrl=document.getElementById('ctrl');ctrl.innerHTML='';let n=3;
+  const win=document.getElementById('win');
+  (function step(){if(!n){win.innerHTML='';return done()}win.innerHTML=`<div class="count">${n}</div>`;n--;setTimeout(step,900)})();
+}
+function spin(c){
+  let w;try{w=CW.drawRandom(c.id,'Live draw (random)')}catch(e){alert(e.message);return view()}
+  setReel(w.ticket,String(c.maxTickets).length,true,()=>reveal(w));
+}
+function setReel(num,digits,animate,cb){
+  const s=String(num).padStart(digits,'0'),strips=[...document.querySelectorAll('.strip')];
+  const h=strips[0].firstElementChild.getBoundingClientRect().height;
+  strips.forEach((st,i)=>{
+    const d=+s[i];
+    if(!animate){st.style.transform=`translateY(${-d*h}px)`;return}
+    // build long strip for spinning
+    const loops=4+i*2;st.innerHTML=Array.from({length:loops*10+10},(_,k)=>`<span>${k%10}</span>`).join('');
+    st.style.transition='none';st.style.transform='translateY(0)';st.offsetHeight;
+    st.style.transition=`transform ${2.6+i*0.9}s cubic-bezier(.12,.75,.15,1)`;
+    st.style.transform=`translateY(${-(loops*10+d)*h}px)`;
+  });
+  if(animate&&cb)setTimeout(cb,(2.6+(digits-1)*0.9)*1000+300);
+}
+function reveal(w){document.getElementById('win').innerHTML=winnerHTML(w);document.getElementById('ctrl').innerHTML='<a class="cw-btn g" href="admin.html#draws">Back to admin</a>';confetti()}
+function confetti(){const cv=document.getElementById('confetti'),x=cv.getContext('2d');cv.width=innerWidth;cv.height=innerHeight;
+ const P=Array.from({length:260},()=>({x:Math.random()*cv.width,y:-20-Math.random()*cv.height,vx:(Math.random()-.5)*5,vy:Math.random()*3+2,r:Math.random()*8+5,c:['#f5c451','#c0264f','#fff','#ffe9a8','#e0446e'][Math.random()*5|0],a:Math.random()*6}));let f=0;
+ (function loop(){x.clearRect(0,0,cv.width,cv.height);P.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.a+=.1;x.save();x.translate(p.x,p.y);x.rotate(p.a);x.fillStyle=p.c;x.fillRect(-p.r/2,-p.r/4,p.r,p.r/2);x.restore()});if(++f<420)requestAnimationFrame(loop);else x.clearRect(0,0,cv.width,cv.height)})()}
+view();
+</script>
+</body>
+</html>

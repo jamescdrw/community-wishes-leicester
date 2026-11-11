@@ -1,0 +1,266 @@
+{
+ "publishedAt": "2026-11-11T10:34:18.442Z",
+ "settings": {
+  "charity": "Community Wishes (Leicester)",
+  "charityNo": "1196244",
+  "email": "gez.communitywishes@gmail.com",
+  "phone": "07805 575955",
+  "bankName": "Community Wishes (Leicester)",
+  "sortCode": "00-00-00",
+  "accountNo": "00000000",
+  "refPrefix": "CW",
+  "postalAddress": "Community Wishes (Leicester), [Postal address], Leicester",
+  "previewMode": true,
+  "holdHours": 48
+ },
+ "competitions": [
+  {
+   "subtitle": "A luxury festive hamper delivered to your door – plus £250 to spend however you like.",
+   "description": "Our biggest festive competition yet! A hand-picked luxury hamper packed with Christmas treats, plus £250 cash.\nDrawn live on our Facebook page.\nEvery ticket helps us grant a wish to someone in Leicester this Christmas.",
+   "image": "",
+   "status": "live",
+   "featured": true,
+   "winner": null,
+   "accountCode": "200",
+   "createdAt": 1794304800000,
+   "updatedAt": 1794391200000,
+   "id": "c-xmas-hamper-2026",
+   "title": "The Big Christmas Hamper + £250 Cash",
+   "prize": "Luxury Christmas hamper and £250 cash",
+   "prizeValue": 450,
+   "icon": "🎄",
+   "theme": 0,
+   "price": 1,
+   "maxTickets": 999,
+   "maxPerPerson": 50,
+   "startAt": 1794301200000,
+   "endAt": 1797710400000,
+   "drawMode": "live",
+   "question": {
+    "q": "What city is Community Wishes based in?",
+    "options": [
+     "Leicester",
+     "Liverpool",
+     "Lincoln"
+    ],
+    "correct": 0
+   },
+   "instantWins": [
+    {
+     "id": "w-x1",
+     "prize": "£50 cash",
+     "value": 50,
+     "ticket": 907,
+     "wonBy": null,
+     "wonAt": null,
+     "wonName": null
+    },
+    {
+     "id": "w-x2",
+     "prize": "£25 Tesco voucher",
+     "value": 25,
+     "ticket": 219,
+     "wonBy": null,
+     "wonAt": null,
+     "wonName": null
+    },
+    {
+     "id": "w-x3",
+     "prize": "£25 Tesco voucher",
+     "value": 25,
+     "ticket": 104,
+     "wonBy": null,
+     "wonAt": null,
+     "wonName": null
+    },
+    {
+     "id": "w-x4",
+     "prize": "Free ticket bundle (10 tickets)",
+     "value": 10,
+     "ticket": 14,
+     "wonBy": null,
+     "wonAt": null,
+     "wonName": null
+    },
+    {
+     "id": "w-x5",
+     "prize": "Selection box",
+     "value": 5,
+     "ticket": 16,
+     "wonBy": null,
+     "wonAt": null,
+     "wonName": null
+    }
+   ]
+  },
+  {
+   "subtitle": "A 4-night stay in the Community Wishes charity caravan.",
+   "description": "Win a 4-night break for up to 6 people in our charity caravan, on a date that suits you in the 2027 season.",
+   "image": "",
+   "status": "live",
+   "featured": false,
+   "winner": null,
+   "accountCode": "200",
+   "createdAt": 1794304800000,
+   "updatedAt": 1794391200000,
+   "id": "c-caravan-break-2027",
+   "title": "Family Caravan Break at the Seaside",
+   "prize": "4-night caravan holiday for up to 6 people",
+   "prizeValue": 600,
+   "icon": "🏖️",
+   "theme": 1,
+   "price": 2,
+   "maxTickets": 500,
+   "maxPerPerson": 40,
+   "startAt": 1793523600000,
+   "endAt": 1801425600000,
+   "drawMode": "auto",
+   "question": {
+    "q": "How many nights is this caravan break?",
+    "options": [
+     "2",
+     "4",
+     "7"
+    ],
+    "correct": 1
+   },
+   "instantWins": [
+    {
+     "id": "w-c1",
+     "prize": "£20 cash",
+     "value": 20,
+     "ticket": 17,
+     "wonBy": null,
+     "wonAt": null,
+     "wonName": null
+    },
+    {
+     "id": "w-c2",
+     "prize": "£20 cash",
+     "value": 20,
+     "ticket": 496,
+     "wonBy": null,
+     "wonAt": null,
+     "wonName": null
+    }
+   ]
+  },
+  {
+   "subtitle": "Upgrade movie night with a brand-new 55-inch 4K TV.",
+   "description": "",
+   "image": "",
+   "status": "live",
+   "featured": false,
+   "winner": null,
+   "accountCode": "200",
+   "createdAt": 1794304800000,
+   "updatedAt": 1794391200000,
+   "id": "c-tv-2026",
+   "title": "55\" 4K Smart TV",
+   "prize": "55-inch 4K Ultra HD Smart TV",
+   "prizeValue": 449,
+   "icon": "📺",
+   "theme": 2,
+   "price": 0.99,
+   "maxTickets": 750,
+   "maxPerPerson": 75,
+   "startAt": 1793869200000,
+   "endAt": 1796587200000,
+   "drawMode": "auto",
+   "question": {
+    "q": "How many inches is this TV?",
+    "options": [
+     "32",
+     "43",
+     "55"
+    ],
+    "correct": 2
+   },
+   "instantWins": []
+  },
+  {
+   "subtitle": "Latest console with two controllers and three games.",
+   "description": "",
+   "image": "",
+   "status": "live",
+   "featured": false,
+   "winner": null,
+   "accountCode": "200",
+   "createdAt": 1794304800000,
+   "updatedAt": 1794391200000,
+   "id": "c-tech-bundle-2026",
+   "title": "Gaming Console Bundle",
+   "prize": "Games console bundle",
+   "prizeValue": 520,
+   "icon": "🎮",
+   "theme": 5,
+   "price": 1.5,
+   "maxTickets": 600,
+   "maxPerPerson": 50,
+   "startAt": 1796148000000,
+   "endAt": 1797969600000,
+   "drawMode": "live",
+   "question": {
+    "q": "How many controllers are in the bundle?",
+    "options": [
+     "One",
+     "Two",
+     "Four"
+    ],
+    "correct": 1
+   },
+   "instantWins": [
+    {
+     "id": "w-g1",
+     "prize": "£30 game voucher",
+     "value": 30,
+     "ticket": 149,
+     "wonBy": null,
+     "wonAt": null,
+     "wonName": null
+    }
+   ]
+  },
+  {
+   "subtitle": "Our October cash competition.",
+   "description": "",
+   "image": "",
+   "status": "drawn",
+   "featured": false,
+   "winner": {
+    "ticket": 417,
+    "entryId": "",
+    "name": "Sarah Mitchell",
+    "ref": "CW-00982-K7Q",
+    "at": 1793477700000,
+    "method": "Live draw (random)",
+    "poolSize": 744
+   },
+   "accountCode": "200",
+   "createdAt": 1794304800000,
+   "updatedAt": 1794391200000,
+   "id": "c-cash-500-oct",
+   "title": "£500 Tax-Free Cash",
+   "prize": "£500 cash",
+   "prizeValue": 500,
+   "icon": "💷",
+   "theme": 4,
+   "price": 1,
+   "maxTickets": 800,
+   "maxPerPerson": 50,
+   "startAt": 1790845200000,
+   "endAt": 1793476800000,
+   "drawMode": "live",
+   "question": {
+    "q": "What is the cash prize?",
+    "options": [
+     "£100",
+     "£500",
+     "£1,000"
+    ],
+    "correct": 1
+   },
+   "instantWins": []
+  }
+ ]
+}

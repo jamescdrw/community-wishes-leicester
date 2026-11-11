@@ -28,6 +28,11 @@
 <body><div><div class="s"></div>Community Wishes (Leicester)<br><small style="color:#cfd6e2;font-weight:400">Loading…</small></div>
 <script>
 Promise.all(Array.from({length:9},(_,i)=>fetch('parts/p'+i+'.txt').then(r=>{if(!r.ok)throw r.status;return r.text()})))
-.then(a=>{document.open();document.write(a.join(''));document.close()})
+.then(a=>{
+ /* Competitions add-on: injected without touching the photo-heavy page parts */
+ const v='?v=20261111';
+ const html=a.join('').replace('</head>','<link rel="stylesheet" href="comp/comp.css'+v+'"></head>')
+  .replace(/<\/body>\s*<\/html>\s*$/,'<script src="comp/store.js'+v+'"><\/script><script src="comp/front.js'+v+'"><\/script></body></html>');
+ document.open();document.write(html);document.close()})
 .catch(e=>{document.body.innerHTML='<p style="padding:24px">Sorry, the page failed to load. Please refresh.</p>'});
 </script></body></html>
