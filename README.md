@@ -8,7 +8,7 @@ Live preview: https://jamescdrw.github.io/community-wishes-leicester/
 | `index.html` | Main charity site (loads `parts/` + the competition showcase from `comp/front.js`) |
 | `competitions.html` | All competitions, and each competition's entry page (`?id=…`) |
 | `terms.html` | Competition terms, including the **free postal entry route** |
-| `admin.html` | Admin: competitions, entries & payments, draws, instant wins, accounts, Xero export, settings |
+| `admin.html` | Admin (own logins: owner, admins, volunteers via invite code): competitions, entries & payments, draws, instant wins, accounts, Xero export, settings |
 | `draw.html?id=…` | Full-screen **live draw** screen (for Facebook Live) – admin only |
 
 ## How it works (demo mode)

@@ -45,7 +45,7 @@
   const clone = o => JSON.parse(JSON.stringify(o));
 
   function blank() {
-    return { v: 1, settings: clone(DEFAULT_SETTINGS), accounts: clone(DEFAULT_ACCOUNTS), competitions: [], entries: [], ledger: [], audit: [], pubLoaded: 0 };
+    return { v: 1, settings: clone(DEFAULT_SETTINGS), accounts: clone(DEFAULT_ACCOUNTS), competitions: [], entries: [], ledger: [], audit: [], admins: [], pubLoaded: 0 };
   }
 
   let S;
@@ -54,7 +54,7 @@
     if (!S || S.v !== 1) S = blank();
     S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
     if (!S.accounts || !S.accounts.length) S.accounts = clone(DEFAULT_ACCOUNTS);
-    ['competitions', 'entries', 'ledger', 'audit'].forEach(k => { if (!Array.isArray(S[k])) S[k] = []; });
+    ['competitions', 'entries', 'ledger', 'audit', 'admins'].forEach(k => { if (!Array.isArray(S[k])) S[k] = []; });
   }
   let saveErr = null;
   function save() {
@@ -65,7 +65,7 @@
   const listeners = [];
   addEventListener('storage', e => { if (e.key === KEY) { load(); listeners.forEach(f => f()); } });
 
-  function log(msg) { S.audit.unshift({ at: now(), msg }); S.audit = S.audit.slice(0, 500); }
+  function log(msg) { const a = currentAdmin(); S.audit.unshift({ at: now(), msg: a ? `[${a.name}] ${msg}` : msg }); S.audit = S.audit.slice(0, 500); }
 
   /* ---------- random (unbiased, crypto) ---------- */
   function randInt(n) { // 0..n-1
@@ -311,6 +311,40 @@
 
   async function sha256(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 
+  /* ---------- admin accounts (demo: stored in this browser) ---------- */
+  const ROLES = { owner: 'Owner', admin: 'Admin', volunteer: 'Volunteer' };
+  function currentAdmin() {
+    try {
+      if (!(+localStorage.getItem('cw_admin_until') > now())) return null;
+      const id = localStorage.getItem('cw_admin_id');
+      return (S.admins || []).find(a => a.id === id && a.active) || null;
+    } catch (e) { return null; }
+  }
+  async function createAdmin({ name, email, password, role = 'volunteer' }) {
+    name = (name || '').trim(); email = (email || '').trim().toLowerCase();
+    if (!name) throw new Error('Please enter a name.');
+    if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Please enter a valid email.');
+    if ((password || '').length < 6) throw new Error('Password must be at least 6 characters.');
+    if (S.admins.some(a => a.email === email)) throw new Error('An account with that email already exists.');
+    const salt = uid('s');
+    const a = { id: uid('a'), name, email, role, salt, hash: await sha256(salt + ':' + password), active: true, createdAt: now(), lastLogin: null };
+    S.admins.push(a);
+    if (!S.settings.inviteCode) S.settings.inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase();
+    log(`Admin account created: ${name} (${ROLES[role]})`); save(); return a;
+  }
+  async function checkLogin(email, password) {
+    email = (email || '').trim().toLowerCase();
+    const a = S.admins.find(x => x.email === email);
+    if (!a || a.hash !== await sha256(a.salt + ':' + password)) throw new Error('Email or password is incorrect.');
+    if (!a.active) throw new Error('This account has been switched off. Ask the owner to turn it back on.');
+    a.lastLogin = now(); save(); return a;
+  }
+  async function setPassword(id, password) {
+    if ((password || '').length < 6) throw new Error('Password must be at least 6 characters.');
+    const a = S.admins.find(x => x.id === id); if (!a) return;
+    a.salt = uid('s'); a.hash = await sha256(a.salt + ':' + password); save();
+  }
+
   load();
 
   window.CW = {
@@ -320,8 +354,9 @@
     eligible, recordWinner, drawRandom, runDueAutoDraws, resetDraw, randInt,
     addLedger, updateLedger, deleteLedger, accountName,
     toCSV, ukDate, download, money, esc, art, countdownParts, sha256, uid, THEMES,
-    isAdmin() { try { return +localStorage.getItem('cw_admin_until') > Date.now(); } catch (e) { return false; } },
-    setAdmin(on) { try { on ? localStorage.setItem('cw_admin_until', String(Date.now() + 8 * 3600e3)) : localStorage.removeItem('cw_admin_until'); } catch (e) {} },
+    isAdmin() { return !!currentAdmin(); },
+    currentAdmin, createAdmin, checkLogin, setPassword, ROLES,
+    setAdmin(id) { try { if (id) { localStorage.setItem('cw_admin_until', String(Date.now() + 8 * 3600e3)); localStorage.setItem('cw_admin_id', id); } else { localStorage.removeItem('cw_admin_until'); localStorage.removeItem('cw_admin_id'); } } catch (e) {} },
     reset() { localStorage.removeItem(KEY); load(); save(); },
     importAll(json) { const d = JSON.parse(json); if (d.v !== 1) throw new Error('Not a Community Wishes backup file'); S = d; save(); },
     exportAll() { return JSON.stringify(S, null, 1); }

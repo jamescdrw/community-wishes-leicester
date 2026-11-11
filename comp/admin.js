@@ -28,43 +28,71 @@
 
   /* ---------- auth ---------- */
   function authed() { return CW.isAdmin(); }
-  function login() {
-    const first = !st().adminHash;
-    root.innerHTML = `<div class="login"><div class="cw-panel"><h2 style="font-family:Fraunces,serif;font-size:1.6rem">${first ? 'Set up admin access' : 'Admin login'}</h2>
-     <p style="color:var(--cw-ink2);margin:0 0 16px">${first ? 'Choose a passcode for the competition & accounts admin. You\'ll need it every time you log in on this device.' : 'Enter the admin passcode.'}</p>
-     <form class="cw-f" id="lf"><label>Passcode<input type="password" name="p" autocomplete="${first ? 'new-password' : 'current-password'}" required minlength="4"></label>
-     ${first ? '<label>Confirm passcode<input type="password" name="p2" autocomplete="new-password" required></label>' : ''}
-     <div class="cw-err" id="le"></div><button class="cw-btn p">${first ? 'Create passcode & enter' : 'Log in'}</button></form>
-     <p style="font-size:.8rem;color:var(--cw-ink2);margin-top:14px">Demo mode: data is saved in this browser only. Use Settings → Backup to move it to another device.</p></div></div>`;
+  const me = () => CW.currentAdmin();
+  /* what each role can open */
+  const ACCESS = {
+    owner: ['dashboard', 'competitions', 'entries', 'draws', 'instant', 'accounts', 'xero', 'team', 'settings'],
+    admin: ['dashboard', 'competitions', 'entries', 'draws', 'instant', 'accounts', 'xero', 'team', 'settings'],
+    volunteer: ['dashboard', 'entries', 'draws', 'instant', 'team']
+  };
+  const can = t => !!me() && ACCESS[me().role].includes(t);
+  function login(mode) {
+    const noAdmins = !S().admins.length;
+    const hashCode = (location.hash.match(/code=([A-Z0-9]+)/i) || [])[1] || '';
+    mode = noAdmins ? 'owner' : (mode || (hashCode ? 'signup' : 'login'));
+    const T = { owner: ['Create the owner account', 'You\'re the first person here, so you\'ll be the <b>Owner</b> with full access. You can invite the rest of the team afterwards.', 'Create account & enter'],
+      login: ['Admin login', 'Log in with your email and password.', 'Log in'],
+      signup: ['Join the admin team', 'Ask the owner for the team <b>invite code</b> (Team page). New members join as <b>Volunteers</b>. The owner can change your role.', 'Create my account'] }[mode];
+    root.innerHTML = `<div class="login"><div class="cw-panel"><h2 style="font-family:Fraunces,serif;font-size:1.6rem">${T[0]}</h2>
+     <p style="color:var(--cw-ink2);margin:0 0 16px">${T[1]}</p>
+     ${noAdmins ? '' : `<div class="cw-tabs" style="margin-bottom:16px"><button type="button" data-m="login" aria-pressed="${mode === 'login'}">Log in</button><button type="button" data-m="signup" aria-pressed="${mode === 'signup'}">Sign up</button></div>`}
+     <form class="cw-f" id="lf">
+      ${mode !== 'login' ? '<label>Your name<input name="name" autocomplete="name" required></label>' : ''}
+      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      <label>Password<input type="password" name="p" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" required minlength="${mode === 'login' ? 1 : 6}"></label>
+      ${mode !== 'login' ? '<label>Confirm password<input type="password" name="p2" autocomplete="new-password" required></label>' : ''}
+      ${mode === 'signup' ? `<label>Invite code<input name="code" required value="${esc(hashCode)}" style="text-transform:uppercase;letter-spacing:.15em"></label>` : ''}
+      <div class="cw-err" id="le" role="alert"></div><button class="cw-btn p">${T[2]}</button></form>
+     ${mode === 'login' ? '<p style="font-size:.84rem;color:var(--cw-ink2);margin-top:12px">Forgotten your password? Ask the owner to reset it on the Team page.</p>' : ''}
+     <p style="font-size:.8rem;color:var(--cw-ink2);margin-top:14px">Demo mode: accounts and data are saved in this browser only.</p></div></div>`;
+    root.querySelectorAll('[data-m]').forEach(b => b.onclick = () => login(b.dataset.m));
     document.getElementById('lf').onsubmit = async e => {
       e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); const le = document.getElementById('le');
-      if ((d.p || '').length < 4) return le.textContent = 'Use at least 4 characters.';
-      if (first) {
-        if (d.p !== d.p2) return le.textContent = 'Passcodes do not match.';
-        st().adminHash = await CW.sha256('cw:' + d.p); CW.log('Admin passcode created'); CW.save();
-      } else if (await CW.sha256('cw:' + d.p) !== st().adminHash) return le.textContent = 'Incorrect passcode.';
-      CW.setAdmin(true); boot();
+      try {
+        let a;
+        if (mode === 'login') a = await CW.checkLogin(d.email, d.p);
+        else {
+          if (d.p !== d.p2) throw new Error('Passwords do not match.');
+          if (mode === 'signup' && (d.code || '').trim().toUpperCase() !== (st().inviteCode || '').toUpperCase()) throw new Error('That invite code isn\'t right. Ask the owner for the current code.');
+          a = await CW.createAdmin({ name: d.name, email: d.email, password: d.p, role: mode === 'owner' ? 'owner' : 'volunteer' });
+        }
+        a.lastLogin = Date.now(); CW.setAdmin(a.id); CW.log('Logged in'); CW.save();
+        if (/code=/.test(location.hash)) history.replaceState(null, '', location.pathname + '#dashboard');
+        tab = 'dashboard'; boot();
+      } catch (err) { le.textContent = err.message; }
     };
   }
-  document.getElementById('logout').onclick = e => { e.preventDefault(); CW.setAdmin(false); location.hash = ''; location.reload(); };
+  document.getElementById('logout').onclick = e => { e.preventDefault(); CW.log('Logged out'); CW.setAdmin(null); location.hash = ''; location.reload(); };
 
   /* ---------- shell ---------- */
   const TABS = [
     ['dashboard', '📊', 'Dashboard'], ['competitions', '🏆', 'Competitions'], ['entries', '🎟️', 'Entries & payments'], ['draws', '🎲', 'Draws'], ['instant', '⚡', 'Instant wins'],
-    ['sep'], ['accounts', '📒', 'Accounts'], ['xero', '📤', 'Export to Xero'], ['sep'], ['settings', '⚙️', 'Settings & publish']
+    ['sep'], ['accounts', '📒', 'Accounts'], ['xero', '📤', 'Export to Xero'], ['sep'], ['team', '👥', 'Team & admins'], ['settings', '⚙️', 'Settings & publish']
   ];
   function shell() {
     document.getElementById('logout').style.display = '';
-    root.innerHTML = `<div class="ad"><aside class="side" id="side">${TABS.map(t => t[0] === 'sep' ? '<div class="sep"></div>' : `<button data-tab="${t[0]}" aria-current="${tab === t[0]}"><span>${t[1]}</span>${t[2]}</button>`).join('')}
+    const u = me(); const vis = TABS.filter(t => t[0] === 'sep' || can(t[0])).filter((t, i, arr) => !(t[0] === 'sep' && (i === 0 || arr[i - 1][0] === 'sep')));
+    root.innerHTML = `<div class="ad"><aside class="side" id="side"><div style="padding:6px 12px 14px;font-size:.86rem"><b style="color:#fff">${esc(u.name)}</b><br><span class="pill p-soon" style="margin-top:4px">${CW.ROLES[u.role]}</span></div>${vis.map(t => t[0] === 'sep' ? '<div class="sep"></div>' : `<button data-tab="${t[0]}" aria-current="${tab === t[0]}"><span>${t[1]}</span>${t[2]}</button>`).join('')}
       <div class="sep"></div><div class="demo">${st().previewMode ? '🟡 <b>Preview mode on</b> – public pages show a "preview" banner.<br><br>' : ''}💾 Demo storage: data lives in this browser. Back up regularly from Settings.</div></aside>
       <main class="pane" id="pane"></main></div>`;
     root.querySelectorAll('[data-tab]').forEach(b => b.onclick = () => go(b.dataset.tab));
     document.getElementById('burg').onclick = () => document.getElementById('side').classList.toggle('open');
   }
-  function go(t) { tab = t; history.replaceState(null, '', '#' + t); root.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === t)); document.getElementById('side').classList.remove('open'); render(); scrollTo(0, 0); }
+  function go(t) { if (!can(t)) t = 'dashboard'; tab = t; history.replaceState(null, '', '#' + t); root.querySelectorAll('[data-tab]').forEach(b => b.setAttribute('aria-current', b.dataset.tab === t)); document.getElementById('side').classList.remove('open'); render(); scrollTo(0, 0); }
   function render() {
     const pane = document.getElementById('pane'); if (!pane) return;
-    ({ dashboard, competitions, entries, draws, instant, accounts, xero, settings }[tab] || dashboard)(pane);
+    if (!can(tab)) tab = 'dashboard';
+    ({ dashboard, competitions, entries, draws, instant, accounts, xero, team, settings }[tab] || dashboard)(pane);
     if (CW.saveError) pane.insertAdjacentHTML('afterbegin', '<div class="msg bad">⚠️ Browser storage is full – your last change may not be saved. Remove large competition photos or back up and reset old data.</div>');
   }
 
@@ -83,14 +111,14 @@
       <div class="kpi"><span>Charity net (accounts)</span><b style="color:${inc - exp >= 0 ? 'var(--cw-ok)' : '#c92a2a'}">${money(inc - exp)}</b></div></div>
      ${toDraw.length ? `<div class="msg warn">🎲 ${toDraw.length} competition${toDraw.length > 1 ? 's are' : ' is'} closed and waiting to be drawn. <a href="#draws" data-go="draws">Go to Draws →</a></div>` : ''}
      ${pend.length ? `<div class="msg info">💷 ${pend.length} reservation${pend.length > 1 ? 's are' : ' is'} waiting for payment. <a href="#entries" data-go="entries">Match payments →</a></div>` : ''}
-     <div class="card2"><h2>Competitions <button class="cw-btn p sm" data-new>+ New competition</button></h2><div class="tw"><table class="t"><thead><tr><th>Competition</th><th>Status</th><th>Sold</th><th>Paid in</th><th>Closes</th><th>Draw</th></tr></thead><tbody>
+     <div class="card2"><h2>Competitions ${can('competitions') ? '<button class="cw-btn p sm" data-new>+ New competition</button>' : ''}</h2><div class="tw"><table class="t"><thead><tr><th>Competition</th><th>Status</th><th>Sold</th><th>Paid in</th><th>Closes</th><th>Draw</th></tr></thead><tbody>
       ${comps.length ? comps.map(c => { const e = S().entries.filter(x => x.compId === c.id && x.status === 'paid'); return `<tr><td><b>${esc(c.title)}</b></td><td>${pill(phase(c))}</td><td class="n">${soldCount(c.id)} / ${c.maxTickets}</td><td class="n">${money(e.reduce((n, x) => n + x.amount, 0))}</td><td>${fmtDT(c.endAt)}</td><td>${c.drawMode === 'live' ? '🎥 Live' : '🎲 Auto'}</td></tr>`; }).join('') : '<tr><td colspan="6">No competitions yet.</td></tr>'}
      </tbody></table></div></div>
      <div class="card2"><h2>Latest entries</h2><div class="tw"><table class="t"><thead><tr><th>When</th><th>Ref</th><th>Name</th><th>Competition</th><th>Tickets</th><th>Amount</th><th>Status</th></tr></thead><tbody>
       ${S().entries.slice(0, 8).map(e => `<tr><td>${fmtDT(e.createdAt)}</td><td>${esc(e.ref)}</td><td>${esc(e.name)}</td><td>${esc((CW.comp(e.compId) || {}).title || '–')}</td><td class="n">${e.tickets.length}</td><td class="n">${money(e.amount)}</td><td><span class="pill p-${e.status}">${e.status}</span></td></tr>`).join('') || '<tr><td colspan="7">No entries yet.</td></tr>'}
      </tbody></table></div></div>`;
     p.querySelectorAll('[data-go]').forEach(a => a.onclick = e => { e.preventDefault(); go(a.dataset.go); });
-    p.querySelector('[data-new]').onclick = () => editComp();
+    const nb = p.querySelector('[data-new]'); if (nb) nb.onclick = () => editComp();
   }
 
   /* ================= COMPETITIONS ================= */
@@ -471,6 +499,56 @@
     };
   }
 
+  /* ================= TEAM ================= */
+  function team(p) {
+    const u = me(), mgr = u.role === 'owner' || u.role === 'admin';
+    const link = location.href.split('#')[0] + '#signup?code=' + (st().inviteCode || '');
+    const owners = S().admins.filter(a => a.role === 'owner' && a.active).length;
+    p.innerHTML = `<h1>Team & admins</h1><p class="intro">Everyone who helps run competitions and accounts gets their own login, so the audit log shows who did what.</p>
+     ${mgr ? `<div class="card2"><h2>Invite someone</h2><p style="color:var(--cw-ink2);margin:0 0 12px">Send them the sign-up link, or give them the invite code to enter on the admin sign-up page. They join as a <b>Volunteer</b>. Change their role below.</p>
+      <div class="toolbar" style="margin:0"><span style="font:900 1.6rem Cinzel,serif;letter-spacing:.15em;color:var(--cw-brand)">${esc(st().inviteCode || '—')}</span>
+      <button class="cw-btn o sm" id="cpl">📋 Copy sign-up link</button><button class="cw-btn o sm" id="newc">↻ New code</button><button class="cw-btn p sm" id="addm">+ Add a team member</button></div>
+      <p style="font-size:.84rem;color:var(--cw-ink2);margin:10px 0 0">Demo mode: sign-ups only work in this browser, so for now add people here or sign them up on this computer.</p></div>` : ''}
+     <div class="card2"><h2>What each role can do</h2><div class="tw"><table class="t"><thead><tr><th>Role</th><th>Can use</th></tr></thead><tbody>
+      <tr><td><b>Owner</b></td><td>Everything, including managing the team and roles</td></tr>
+      <tr><td><b>Admin</b></td><td>Everything: competitions, entries, draws, accounts, Xero, settings. Can manage volunteers.</td></tr>
+      <tr><td><b>Volunteer</b></td><td>Dashboard, entries & payments, draws, instant wins. <i>No accounts, Xero or settings.</i></td></tr></tbody></table></div></div>
+     <div class="card2" style="padding:0"><div class="tw"><table class="t"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Last login</th>${mgr ? '<th>Actions</th>' : ''}</tr></thead><tbody>
+      ${S().admins.map(a => {
+        const canEdit = mgr && a.id !== u.id && (u.role === 'owner' || a.role === 'volunteer');
+        return `<tr><td><b>${esc(a.name)}</b>${a.id === u.id ? ' <small>(you)</small>' : ''}</td><td>${esc(a.email)}</td>
+        <td>${canEdit ? `<select data-role="${a.id}">${Object.entries(CW.ROLES).filter(([k]) => u.role === 'owner' || k === 'volunteer' || k === a.role).map(([k, l]) => `<option value="${k}" ${a.role === k ? 'selected' : ''}>${l}</option>`).join('')}</select>` : CW.ROLES[a.role]}</td>
+        <td>${a.active ? '<span class="pill p-paid">Active</span>' : '<span class="pill p-cancelled">Switched off</span>'}</td><td>${fmtD(a.createdAt)}</td><td>${a.lastLogin ? fmtDT(a.lastLogin) : 'Never'}</td>
+        ${mgr ? `<td><div class="acts">${canEdit ? `<button class="cw-btn o sm" data-reset-pw="${a.id}">Reset password</button><button class="cw-btn o sm" data-toggle="${a.id}">${a.active ? 'Switch off' : 'Switch on'}</button>` : ''}</div></td>` : ''}</tr>`; }).join('')}
+     </tbody></table></div></div>`;
+    if (!mgr) return;
+    p.querySelector('#cpl').onclick = () => { navigator.clipboard && navigator.clipboard.writeText(link); toast('Sign-up link copied'); };
+    p.querySelector('#newc').onclick = () => { if (!confirm('Make a new invite code? The old code will stop working.')) return; st().inviteCode = Math.random().toString(36).slice(2, 8).toUpperCase(); CW.log('Invite code changed'); CW.save(); render(); };
+    p.querySelector('#addm').onclick = () => {
+      openModal(`<h2 style="font-family:Fraunces,serif;margin:0 0 12px">Add a team member</h2><form class="cw-f" id="mf">
+       <div class="two"><label>Name<input name="name" required></label><label>Email<input name="email" type="email" required></label></div>
+       <div class="two"><label>Temporary password<input name="p" required minlength="6" value="${Math.random().toString(36).slice(2, 10)}"></label>
+       <label>Role<select name="role">${Object.entries(CW.ROLES).filter(([k]) => u.role === 'owner' || k === 'volunteer').map(([k, l]) => `<option value="${k}" ${k === 'volunteer' ? 'selected' : ''}>${l}</option>`).join('')}</select></label></div>
+       <p style="font-size:.84rem;color:var(--cw-ink2);margin:0">Give them the temporary password. They can change it under Settings → Change my password.</p>
+       <div class="cw-err" id="me"></div><button class="cw-btn p">Add member</button></form>`);
+      document.getElementById('mf').onsubmit = async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); try { await CW.createAdmin({ name: d.name, email: d.email, password: d.p, role: d.role }); closeModal(); toast(`${d.name} added. Temporary password: ${d.p}`); render(); } catch (err) { document.getElementById('me').textContent = err.message; } };
+    };
+    p.querySelectorAll('[data-role]').forEach(sel => sel.onchange = () => {
+      const a = S().admins.find(x => x.id === sel.dataset.role);
+      if (a.role === 'owner' && sel.value !== 'owner' && owners < 2) { alert('There must always be at least one owner.'); return render(); }
+      a.role = sel.value; CW.log(`${a.name} is now ${CW.ROLES[a.role]}`); CW.save(); toast('Role updated'); render();
+    });
+    p.querySelectorAll('[data-reset-pw]').forEach(b => b.onclick = async () => {
+      const a = S().admins.find(x => x.id === b.dataset.resetPw); const np = prompt(`New temporary password for ${a.name} (at least 6 characters):`, Math.random().toString(36).slice(2, 10));
+      if (!np) return; try { await CW.setPassword(a.id, np); CW.log(`Password reset for ${a.name}`); CW.save(); toast(`Password reset. Give ${a.name}: ${np}`); } catch (err) { alert(err.message); }
+    });
+    p.querySelectorAll('[data-toggle]').forEach(b => b.onclick = () => {
+      const a = S().admins.find(x => x.id === b.dataset.toggle);
+      if (a.active && a.role === 'owner' && owners < 2) return alert('You can\'t switch off the only owner.');
+      a.active = !a.active; CW.log(`${a.name} ${a.active ? 'switched on' : 'switched off'}`); CW.save(); render();
+    });
+  }
+
   /* ================= SETTINGS ================= */
   function settings(p) {
     const s = st();
@@ -487,15 +565,15 @@
       <div class="three"><label>Reference prefix<input name="refPrefix" value="${esc(s.refPrefix)}" maxlength="6"></label><label>Hold unpaid tickets (hours)<input name="holdHours" type="number" min="0" value="${s.holdHours}"></label><label>Xero tax type<input name="taxType" value="${esc(s.taxType)}"></label></div>
       <label class="cw-check"><input type="checkbox" name="previewMode" ${s.previewMode ? 'checked' : ''}> Preview mode (shows "examples only" banner on the public pages)</label>
       <div><button class="cw-btn p">Save settings</button></div></form>
-     <form class="card2 cw-f" id="pw"><h2>Change admin passcode</h2><div class="two"><label>New passcode<input type="password" name="p" minlength="4" required autocomplete="new-password"></label><label>Confirm<input type="password" name="p2" required autocomplete="new-password"></label></div><div><button class="cw-btn o">Change passcode</button></div></form>
+     <form class="card2 cw-f" id="pw"><h2>Change my password</h2><div class="two"><label>New password<input type="password" name="p" minlength="6" required autocomplete="new-password"></label><label>Confirm<input type="password" name="p2" required autocomplete="new-password"></label></div><div><button class="cw-btn o">Change password</button></div></form>
      <div class="card2"><h2>Backup & restore</h2><p style="color:var(--cw-ink2);margin:0 0 12px">Download a full backup (competitions, entries, accounts, logs) to keep safe or to move to another computer.</p>
       <div class="acts"><button class="cw-btn ok" id="bk">⬇ Download full backup</button><label class="cw-btn o" style="cursor:pointer">⬆ Restore from backup<input type="file" id="rs" accept=".json,application/json" hidden></label><button class="cw-btn bad" id="wipe">Delete all data</button></div></div>`;
     p.querySelector('#pub').onclick = () => { CW.download('competitions.json', CW.publishedJSON(), 'application/json'); CW.log('Competitions file downloaded for publishing'); CW.save(); };
     p.querySelector('#sf').onsubmit = e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); Object.assign(s, d, { previewMode: !!d.previewMode, holdHours: +d.holdHours || 0 }); CW.log('Settings updated'); CW.save(); toast('Settings saved'); shell(); render(); };
-    p.querySelector('#pw').onsubmit = async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); if (d.p !== d.p2) return alert('Passcodes do not match'); s.adminHash = await CW.sha256('cw:' + d.p); CW.log('Admin passcode changed'); CW.save(); e.target.reset(); toast('Passcode changed'); };
+    p.querySelector('#pw').onsubmit = async e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); if (d.p !== d.p2) return alert('Passwords do not match'); try { await CW.setPassword(me().id, d.p); CW.log('Changed own password'); CW.save(); e.target.reset(); toast('Password changed'); } catch (err) { alert(err.message); } };
     p.querySelector('#bk').onclick = () => CW.download(`community-wishes-backup-${toDateInput(Date.now())}.json`, CW.exportAll(), 'application/json');
     p.querySelector('#rs').onchange = e => { const f = e.target.files[0]; if (!f) return; const r = new FileReader(); r.onload = () => { try { if (!confirm('Replace ALL data in this browser with the backup?')) return; CW.importAll(r.result); toast('Backup restored'); shell(); render(); } catch (err) { alert(err.message); } }; r.readAsText(f); };
-    p.querySelector('#wipe').onclick = () => { if (prompt('This deletes every competition, entry and account line in this browser. Type DELETE to confirm.') === 'DELETE') { CW.reset(); CW.setAdmin(false); location.reload(); } };
+    p.querySelector('#wipe').onclick = () => { if (prompt('This deletes every competition, entry and account line in this browser. Type DELETE to confirm.') === 'DELETE') { CW.reset(); CW.setAdmin(null); location.reload(); } };
   }
 
   /* ---------- boot ---------- */
