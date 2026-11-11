@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Donate | Community Wishes (Leicester)</title>
+<meta name="description" content="Donate to Community Wishes (Leicester) and help grant wishes to people facing hardship, illness or disability. Registered charity 1196244.">
+<meta name="theme-color" content="#0a1226">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comp/comp.css">
+<style>
+.dn{display:grid;grid-template-columns:1.1fr .9fr;gap:30px;margin-top:-40px;position:relative}
+.amts{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.amts button{padding:18px 10px;border-radius:16px;border:1.5px solid var(--cw-line);background:#fff;font:800 1.35rem Inter;cursor:pointer;transition:.2s}
+.amts button small{display:block;font:500 .74rem Inter;color:var(--cw-ink2);margin-top:4px}
+.amts button[aria-pressed=true]{border-color:var(--cw-brand);background:#fff0f4;color:var(--cw-brand)}
+.freq{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;background:var(--cw-bg);padding:6px;border-radius:16px}
+.freq button{padding:12px;border:0;border-radius:12px;background:none;font:700 .96rem Inter;cursor:pointer}
+.freq button[aria-pressed=true]{background:var(--cw-navy);color:#fff}
+.ga{border:1.5px solid #f3d27a;background:linear-gradient(135deg,#fff8e1,#fffdf6);border-radius:18px;padding:18px}
+.ga h3{font:700 1.05rem Inter;margin:0 0 6px;display:flex;gap:8px;align-items:center}
+.ga .boost{font:900 1.4rem Cinzel,serif;color:var(--cw-brand)}
+.impact{display:grid;gap:12px}
+.impact div{display:flex;gap:14px;align-items:center;padding:14px;border-radius:16px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+.impact b{font:900 1.3rem Cinzel,serif;color:var(--cw-gold);min-width:64px}
+@media (max-width:900px){.dn{grid-template-columns:1fr}}
+@media (max-width:420px){.amts{grid-template-columns:repeat(2,1fr)}}
+</style>
+</head>
+<body class="cw-page">
+<header class="cw-top"><div class="in">
+ <a class="cw-logo" href="./"><i>★</i><b>Community Wishes<small>LEICESTER</small></b></a>
+ <nav><a href="./" class="hide-m">Home</a><a href="competitions.html" class="hide-m">Competitions</a><a href="donate.html" class="on">Donate</a><a href="account.html" data-acct>Log in</a></nav>
+</div></header>
+<div id="banner"></div>
+<section class="cw-hero"><div class="cw-wrap"><h1>Make a wish come true</h1>
+ <p>Every donation helps Community Wishes grant wishes to people across Leicester facing financial hardship, illness or disability, whatever their age.</p></div></section>
+<main class="cw-wrap"><div class="dn">
+ <div class="cw-panel" id="form"></div>
+ <div style="display:grid;gap:20px;align-content:start">
+  <div class="cw-panel dk"><h2 style="color:#fff">Where your money goes</h2><div class="impact">
+   <div><b>£10</b><span>Treats and a gift for a child spending time in hospital</span></div>
+   <div><b>£25</b><span>A family day out for someone who hasn't had one in years</span></div>
+   <div><b>£50</b><span>Helps towards a break in our charity caravan</span></div>
+   <div><b>£100</b><span>Helps grant a full wish for someone facing illness or hardship</span></div></div>
+   <p style="font-size:.8rem;color:#8f9ab0;margin-top:12px">Examples only. Every gift goes where it's needed most.</p></div>
+  <div class="cw-panel" id="side"></div>
+ </div>
+</div></main>
+<footer class="cw-foot"><div class="cw-wrap"><p><b style="color:#fff" data-s="charity"></b> · Registered charity <span data-s="charityNo"></span> · <a href="terms.html">Terms</a></p></div></footer>
+<div class="cw-modal" id="modal" role="dialog" aria-modal="true"><div class="box"><button class="x" aria-label="Close">✕</button><div id="mbody"></div></div></div>
+<script src="comp/store.js"></script>
+<script>
+const {esc,money}=CW,st=()=>CW.state.settings;
+const q=new URLSearchParams(location.search);
+let amount=+q.get('amount')||25,freq=q.get('monthly')?'monthly':'one-off',custom=!!q.get('amount')&&![5,10,25,50,100].includes(+q.get('amount'));
+function fill(){const s=st();document.querySelectorAll('[data-s]').forEach(e=>e.textContent=s[e.dataset.s]||'');
+ document.getElementById('banner').innerHTML=s.previewMode?'<div class="cw-banner">Preview mode – please don\'t send real money yet.</div>':'';}
+function side(){const m=CW.currentMember();
+ document.getElementById('side').innerHTML=m?`<h2>Hi ${esc(m.name.split(' ')[0])} 👋</h2><p style="color:var(--cw-ink2)">Your details are filled in. Your donations will show in <a href="account.html#donations">My account</a>.</p>`
+ :`<h2>Become a member</h2><p style="color:var(--cw-ink2)">Join free to see your donations and competition tickets in one place, and save your Gift Aid declaration.</p><a class="cw-btn p" href="account.html#join" style="margin-top:12px">Join or log in</a>`;}
+function form(){
+ const m=CW.currentMember();const pre=[5,10,25,50,100];
+ const ga=(amount*0.25);
+ document.getElementById('form').innerHTML=`<h2>Choose your gift</h2>
+  <div class="freq"><button type="button" data-f="one-off" aria-pressed="${freq==='one-off'}">One-off</button><button type="button" data-f="monthly" aria-pressed="${freq==='monthly'}">Monthly ♥</button></div>
+  <div class="amts">${pre.map(a=>`<button type="button" data-a="${a}" aria-pressed="${!custom&&amount===a}">£${a}${freq==='monthly'?'<small>a month</small>':''}</button>`).join('')}<button type="button" data-a="other" aria-pressed="${custom}">Other</button></div>
+  <div class="cw-f" style="margin-top:12px;${custom?'':'display:none'}" id="cwrap"><label>Your amount (£)<input type="number" id="camt" min="1" step="1" value="${custom?amount:''}" placeholder="e.g. 15"></label></div>
+  <form class="cw-f" id="df" style="margin-top:20px" novalidate>
+   <div class="ga"><h3>🇬🇧 Boost your gift by 25% with Gift Aid</h3>
+    <p style="font-size:.92rem;color:var(--cw-ink2);margin:0 0 10px">If you're a UK taxpayer, we can claim <span class="boost">${money(ga)}</span> extra from HMRC on your ${money(amount)} gift at no cost to you.</p>
+    <label class="cw-check"><input type="checkbox" name="giftAid" id="gaBox" ${m&&m.giftAid?'checked':''}> Yes, I am a UK taxpayer and would like ${esc(st().charity)} to treat this ${freq==='monthly'?'and all future donations':'donation and any donations I make in the future or have made in the past 4 years'} as Gift Aid donations.</label>
+    <p style="font-size:.78rem;color:var(--cw-ink2);margin:8px 0 0">I understand that if I pay less Income Tax and/or Capital Gains Tax than the amount of Gift Aid claimed on all my donations in that tax year, it is my responsibility to pay any difference. I will tell the charity if I want to cancel this declaration, change my name or home address, or no longer pay enough tax.</p></div>
+   <div class="two"><label>Full name *<input name="name" autocomplete="name" value="${esc(m?m.name:'')}" required></label><label>Email *<input name="email" type="email" autocomplete="email" value="${esc(m?m.email:'')}" required></label></div>
+   <div id="addr" class="two" style="${m&&m.giftAid?'':'display:none'}"><label>Home address *<input name="address" autocomplete="street-address" value="${esc(m?m.address:'')}"></label><label>Postcode *<input name="postcode" autocomplete="postal-code" value="${esc(m?m.postcode:'')}"></label></div>
+   <label>Message (optional)<input name="message" placeholder="In memory of… / for a special wish…"></label>
+   <div class="cw-err" id="err" role="alert"></div>
+   <button class="cw-btn g" style="width:100%;padding:17px;font-size:1.08rem">Donate ${money(amount)}${freq==='monthly'?' a month':''} →</button>
+   <p style="font-size:.82rem;color:var(--cw-ink2);text-align:center;margin:0">You'll get our bank details and a reference to complete your gift.</p>
+  </form>`;
+ const f=document.getElementById('form');
+ f.querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{freq=b.dataset.f;keep(form)});
+ f.querySelectorAll('[data-a]').forEach(b=>b.onclick=()=>{if(b.dataset.a==='other'){custom=true;keep(form);document.getElementById('camt').focus();return}custom=false;amount=+b.dataset.a;keep(form)});
+ const c=document.getElementById('camt');c.oninput=()=>{amount=Math.max(0,+c.value||0);const btn=f.querySelector('#df button');btn.textContent=`Donate ${money(amount)}${freq==='monthly'?' a month':''} →`;f.querySelector('.boost').textContent=money(amount*.25)};
+ document.getElementById('gaBox').onchange=e=>document.getElementById('addr').style.display=e.target.checked?'':'none';
+ document.getElementById('df').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
+  try{const don=CW.createDonation(Object.assign(d,{amount,frequency:freq}));done(don)}catch(err){document.getElementById('err').textContent=err.message}};
+}
+let kept={};function keep(fn){const df=document.getElementById('df');if(df)kept=Object.fromEntries(new FormData(df));fn();const n=document.getElementById('df');if(n)Object.entries(kept).forEach(([k,v])=>{const el=n.elements[k];if(!el)return;if(el.type==='checkbox'){el.checked=true;el.onchange&&el.onchange({target:el})}else el.value=v})}
+function done(d){const s=st();
+ document.getElementById('mbody').innerHTML=`<h2 style="font-family:Fraunces,serif;font-size:1.7rem;margin:0 0 6px">Thank you, ${esc(d.name.split(' ')[0])}! 💛</h2>
+  <p style="color:var(--cw-ink2)">Your ${d.frequency==='monthly'?'monthly ':''}gift of <b>${money(d.amount)}</b>${d.giftAid?` (worth <b>${money(d.amount*1.25)}</b> with Gift Aid)`:''} will help us grant wishes across Leicester.</p>
+  <div style="background:var(--cw-bg);border-radius:16px;padding:18px;margin-top:12px"><b>${d.frequency==='monthly'?'Set up a monthly standing order':'Complete your donation by bank transfer'}</b>
+  <table style="width:100%;margin-top:10px;font-size:.95rem"><tr><td style="color:var(--cw-ink2)">Account name</td><td><b>${esc(s.bankName)}</b></td></tr><tr><td style="color:var(--cw-ink2)">Sort code</td><td><b>${esc(s.sortCode)}</b></td></tr><tr><td style="color:var(--cw-ink2)">Account no.</td><td><b>${esc(s.accountNo)}</b></td></tr>
+  <tr><td style="color:var(--cw-ink2)">Reference</td><td><b style="color:var(--cw-brand)">${esc(d.ref)}</b></td></tr><tr><td style="color:var(--cw-ink2)">Amount</td><td><b>${money(d.amount)}${d.frequency==='monthly'?' monthly':''}</b></td></tr></table></div>
+  ${CW.currentMember()?'<p style="font-size:.88rem;color:var(--cw-ink2);margin-top:12px">This donation is saved in <a href="account.html#donations">My account</a>.</p>':'<p style="font-size:.88rem;color:var(--cw-ink2);margin-top:12px"><a href="account.html#join">Create a free account</a> to keep track of your donations.</p>'}
+  <button class="cw-btn p" style="width:100%;margin-top:16px" id="ok">Done</button>`;
+ const mo=document.getElementById('modal');mo.classList.add('open');
+ const close=()=>{mo.classList.remove('open');custom=false;amount=25;form()};mo.querySelector('.x').onclick=close;document.getElementById('ok').onclick=close;
+}
+fill();side();form();CW.syncPublished().then(fill);
+</script>
+</body>
+</html>

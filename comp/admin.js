@@ -31,9 +31,9 @@
   const me = () => CW.currentAdmin();
   /* what each role can open */
   const ACCESS = {
-    owner: ['dashboard', 'competitions', 'entries', 'draws', 'instant', 'accounts', 'xero', 'team', 'settings'],
-    admin: ['dashboard', 'competitions', 'entries', 'draws', 'instant', 'accounts', 'xero', 'team', 'settings'],
-    volunteer: ['dashboard', 'entries', 'draws', 'instant', 'team']
+    owner: ['dashboard', 'competitions', 'entries', 'draws', 'instant', 'donations', 'members', 'accounts', 'xero', 'website', 'team', 'settings'],
+    admin: ['dashboard', 'competitions', 'entries', 'draws', 'instant', 'donations', 'members', 'accounts', 'xero', 'website', 'team', 'settings'],
+    volunteer: ['dashboard', 'entries', 'draws', 'instant', 'donations', 'team']
   };
   const can = t => !!me() && ACCESS[me().role].includes(t);
   function login(mode) {
@@ -48,7 +48,7 @@
      ${noAdmins ? '' : `<div class="cw-tabs" style="margin-bottom:16px"><button type="button" data-m="login" aria-pressed="${mode === 'login'}">Log in</button><button type="button" data-m="signup" aria-pressed="${mode === 'signup'}">Sign up</button></div>`}
      <form class="cw-f" id="lf">
       ${mode !== 'login' ? '<label>Your name<input name="name" autocomplete="name" required></label>' : ''}
-      <label>Email<input name="email" type="email" autocomplete="email" required></label>
+      ${mode === 'login' ? '<label>Email or username<input name="email" autocomplete="username" required></label>' : '<label>Email<input name="email" type="email" autocomplete="email" required></label>'}
       <label>Password<input type="password" name="p" autocomplete="${mode === 'login' ? 'current-password' : 'new-password'}" required minlength="${mode === 'login' ? 1 : 6}"></label>
       ${mode !== 'login' ? '<label>Confirm password<input type="password" name="p2" autocomplete="new-password" required></label>' : ''}
       ${mode === 'signup' ? `<label>Invite code<input name="code" required value="${esc(hashCode)}" style="text-transform:uppercase;letter-spacing:.15em"></label>` : ''}
@@ -77,7 +77,7 @@
   /* ---------- shell ---------- */
   const TABS = [
     ['dashboard', '📊', 'Dashboard'], ['competitions', '🏆', 'Competitions'], ['entries', '🎟️', 'Entries & payments'], ['draws', '🎲', 'Draws'], ['instant', '⚡', 'Instant wins'],
-    ['sep'], ['accounts', '📒', 'Accounts'], ['xero', '📤', 'Export to Xero'], ['sep'], ['team', '👥', 'Team & admins'], ['settings', '⚙️', 'Settings & publish']
+    ['sep'], ['donations', '💛', 'Donations'], ['members', '👤', 'Members'], ['sep'], ['accounts', '📒', 'Accounts'], ['xero', '📤', 'Export to Xero'], ['sep'], ['website', '🎨', 'Website editor'], ['team', '👥', 'Team & admins'], ['settings', '⚙️', 'Settings & publish']
   ];
   function shell() {
     document.getElementById('logout').style.display = '';
@@ -92,7 +92,7 @@
   function render() {
     const pane = document.getElementById('pane'); if (!pane) return;
     if (!can(tab)) tab = 'dashboard';
-    ({ dashboard, competitions, entries, draws, instant, accounts, xero, team, settings }[tab] || dashboard)(pane);
+    ({ dashboard, competitions, entries, draws, instant, donations, members, accounts, xero, website, team, settings }[tab] || dashboard)(pane);
     if (CW.saveError) pane.insertAdjacentHTML('afterbegin', '<div class="msg bad">⚠️ Browser storage is full – your last change may not be saved. Remove large competition photos or back up and reset old data.</div>');
   }
 
@@ -352,6 +352,79 @@
      </tbody></table></div></div>`;
   }
 
+  /* ================= DONATIONS ================= */
+  function donations(p) {
+    const all = S().donations;
+    const ds = ui.donStatus || 'all'; let list = all.filter(d => ds === 'all' || d.status === ds);
+    const q = (ui.donQ || '').trim().toLowerCase();
+    if (q) list = list.filter(d => [d.ref, d.name, d.email, d.postcode].join(' ').toLowerCase().includes(q));
+    const rec = all.filter(d => d.status === 'received'), pl = all.filter(d => d.status === 'pledged');
+    const gaDue = rec.filter(d => d.giftAid && !d.giftAidClaimed);
+    p.innerHTML = `<h1>Donations</h1><p class="intro">Donations from the website's Donate page. When money arrives, press <b>Received</b>. It goes into the accounts (code 201) automatically.</p>
+     <div class="kpis"><div class="kpi hi"><span>Received</span><b>${money(rec.reduce((n, d) => n + d.amount, 0))}</b></div><div class="kpi"><span>Awaiting payment</span><b>${money(pl.reduce((n, d) => n + d.amount, 0))}</b><small>${pl.length} pledge(s)</small></div>
+      <div class="kpi"><span>Monthly supporters</span><b>${new Set(all.filter(d => d.frequency === 'monthly' && d.status !== 'cancelled').map(d => d.email.toLowerCase())).size}</b></div><div class="kpi"><span>Gift Aid to claim</span><b style="color:var(--cw-ok)">${money(gaDue.reduce((n, d) => n + d.amount * .25, 0))}</b><small>${gaDue.length} donation(s)</small></div></div>
+     <div class="toolbar"><select id="dst">${[['all', 'All'], ['pledged', 'Awaiting payment'], ['received', 'Received'], ['cancelled', 'Cancelled']].map(([k, l]) => `<option value="${k}" ${(ui.donStatus || 'all') === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
+      <input id="dq" type="search" placeholder="Search ref, name, email, postcode" value="${esc(ui.donQ || '')}" style="flex:1;min-width:200px">
+      <button class="cw-btn p sm" id="dadd">+ Record a donation</button>${can('accounts') ? `<button class="cw-btn ok sm" id="ga" ${gaDue.length ? '' : 'disabled'}>⬇ Gift Aid schedule for HMRC</button>` : ''}<button class="cw-btn o sm" id="dcsv">⬇ Export CSV</button></div>
+     <div class="card2" style="padding:0"><div class="tw"><table class="t"><thead><tr><th>Ref</th><th>Date</th><th>Donor</th><th>Type</th><th>Gift Aid</th><th>Amount</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+     ${list.map(d => `<tr><td><b>${esc(d.ref)}</b>${d.message ? `<br><small>“${esc(d.message)}”</small>` : ''}</td><td>${fmtDT(d.createdAt)}</td><td>${esc(d.name)}<br><small><a href="mailto:${esc(d.email)}">${esc(d.email)}</a>${d.memberId ? ' · member' : ''}</small></td>
+      <td>${d.frequency === 'monthly' ? '🔁 Monthly' : 'One-off'}</td><td>${d.giftAid ? `✅ ${esc(d.postcode)}${d.giftAidClaimed ? '<br><small>claimed</small>' : ''}` : '–'}</td><td class="n">${money(d.amount)}</td>
+      <td><span class="pill p-${d.status === 'received' ? 'paid' : d.status === 'pledged' ? 'pending' : 'cancelled'}">${d.status === 'pledged' ? 'awaiting' : d.status}</span>${d.receivedAt ? `<br><small>${fmtD(d.receivedAt)} · ${esc(d.payMethod)}</small>` : ''}</td>
+      <td><div class="acts">${d.status === 'pledged' ? `<button class="cw-btn ok sm" data-rec="${d.id}">✓ Received</button>` : ''}${d.status === 'received' ? `<button class="cw-btn o sm" data-undo="${d.id}">Undo</button>` : ''}${d.status !== 'cancelled' ? `<button class="cw-btn o sm" data-dcan="${d.id}">Cancel</button>` : ''}</div></td></tr>`).join('') || '<tr><td colspan="8" style="padding:30px;text-align:center">No donations yet. They appear here when someone uses the Donate page.</td></tr>'}
+     </tbody></table></div></div>`;
+    p.querySelector('#dst').onchange = e => { ui.donStatus = e.target.value; render(); };
+    let tm; p.querySelector('#dq').oninput = e => { clearTimeout(tm); tm = setTimeout(() => { ui.donQ = e.target.value; render(); const i = document.getElementById('dq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250); };
+    p.querySelectorAll('[data-rec]').forEach(b => b.onclick = () => {
+      const d = all.find(x => x.id === b.dataset.rec);
+      openModal(`<h2 style="font-family:Fraunces,serif;margin:0 0 6px">Donation received</h2><p style="color:var(--cw-ink2)">${esc(d.name)} · ${money(d.amount)} · ${esc(d.ref)}</p>
+       <form class="cw-f" id="rf"><label>How was it paid?<select name="m"><option>Bank transfer</option><option>Standing order</option><option>Cash</option><option>Cheque</option><option>Card (in person)</option><option>PayPal</option></select></label>
+       <label>Date received<input type="date" name="d" value="${toDateInput(Date.now())}"></label><button class="cw-btn ok">Confirm</button></form>`);
+      document.getElementById('rf').onsubmit = e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target)); CW.donationReceived(d.id, f.m, fromInput(f.d + 'T12:00')); closeModal(); toast('Donation recorded & added to accounts'); render(); };
+    });
+    p.querySelectorAll('[data-undo]').forEach(b => b.onclick = () => { if (confirm('Mark as not received? The accounts line is removed (or reversed if already sent to Xero).')) { CW.donationUndo(b.dataset.undo); render(); } });
+    p.querySelectorAll('[data-dcan]').forEach(b => b.onclick = () => { if (confirm('Cancel this donation?')) { CW.donationCancel(b.dataset.dcan); render(); } });
+    p.querySelector('#dadd').onclick = () => {
+      openModal(`<h2 style="font-family:Fraunces,serif;margin:0 0 12px">Record a donation</h2><form class="cw-f" id="nf">
+       <div class="two"><label>Donor name *<input name="name" required></label><label>Email *<input name="email" type="email" required></label></div>
+       <div class="two"><label>Amount £ *<input name="amount" type="number" min="1" step="0.01" required></label><label>Type<select name="frequency"><option value="one-off">One-off</option><option value="monthly">Monthly</option></select></label></div>
+       <label class="cw-check"><input type="checkbox" name="giftAid" id="nga"> Donor has made a Gift Aid declaration</label>
+       <div class="two"><label>Home address<input name="address"></label><label>Postcode<input name="postcode"></label></div>
+       <label class="cw-check"><input type="checkbox" name="rec" checked> Money already received</label>
+       <div class="cw-err" id="nerr"></div><button class="cw-btn p">Save donation</button></form>`);
+      document.getElementById('nf').onsubmit = e => { e.preventDefault(); const f = Object.fromEntries(new FormData(e.target));
+        try { const d = CW.createDonation(Object.assign(f, { giftAid: !!f.giftAid })); d.memberId = null; if (f.rec) CW.donationReceived(d.id, 'Recorded by admin'); CW.save(); closeModal(); toast('Donation saved'); render(); } catch (err) { document.getElementById('nerr').textContent = err.message; } };
+    };
+    const ga = p.querySelector('#ga');
+    if (ga) ga.onclick = () => {
+      const rows = [['Title', 'First name', 'Last name', 'House name or number', 'Postcode', 'Aggregated donations', 'Sponsored event', 'Donation date', 'Amount']];
+      gaDue.forEach(d => { const parts = d.name.trim().split(/\s+/); const first = parts.shift() || ''; const last = parts.join(' ') || first; const a0 = d.address.trim(); const house = (a0.match(/^(\d+[a-z]?)\b/i) || [])[1] || a0.split(',')[0].trim();
+        const dt = new Date(d.receivedAt); rows.push(['', first, last, house, d.postcode, '', '', String(dt.getDate()).padStart(2, '0') + '/' + String(dt.getMonth() + 1).padStart(2, '0') + '/' + String(dt.getFullYear()).slice(2), d.amount.toFixed(2)]); });
+      CW.download(`gift-aid-schedule-${toDateInput(Date.now())}.csv`, CW.toCSV(rows));
+      if (confirm(`Mark these ${gaDue.length} donations as claimed, so they aren't included next time?`)) { gaDue.forEach(d => d.giftAidClaimed = Date.now()); CW.log(`Gift Aid schedule exported: ${gaDue.length} donations, ${money(gaDue.reduce((n, d) => n + d.amount, 0))}`); CW.save(); render(); }
+    };
+    p.querySelector('#dcsv').onclick = () => CW.download('community-wishes-donations.csv', CW.toCSV([['Reference', 'Date', 'Name', 'Email', 'Phone', 'Type', 'Amount', 'Gift Aid', 'Address', 'Postcode', 'Status', 'Received', 'Paid by', 'Message'],
+      ...list.map(d => [d.ref, CW.ukDate(d.createdAt), d.name, d.email, d.phone, d.frequency, d.amount.toFixed(2), d.giftAid ? 'Yes' : 'No', d.address, d.postcode, d.status, d.receivedAt ? CW.ukDate(d.receivedAt) : '', d.payMethod, d.message])]));
+  }
+
+  /* ================= MEMBERS ================= */
+  function members(p) {
+    const q = (ui.memQ || '').trim().toLowerCase();
+    const list = S().members.filter(m => !q || [m.name, m.email, m.postcode, m.phone].join(' ').toLowerCase().includes(q)).sort((a, b) => b.createdAt - a.createdAt);
+    const stat = m => { const e = CW.memberEntries(m), d = CW.memberDonations(m); return { t: e.filter(x => x.status !== 'cancelled').reduce((n, x) => n + x.tickets.length, 0), spent: e.filter(x => x.status === 'paid').reduce((n, x) => n + x.amount, 0), given: d.filter(x => x.status === 'received').reduce((n, x) => n + x.amount, 0) }; };
+    p.innerHTML = `<h1>Members</h1><p class="intro">Supporters who've joined on the website (My account). Contains personal data, so handle it carefully.</p>
+     <div class="kpis"><div class="kpi hi"><span>Members</span><b>${S().members.length}</b></div><div class="kpi"><span>Happy to get emails</span><b>${S().members.filter(m => m.marketing).length}</b></div><div class="kpi"><span>Gift Aid declared</span><b>${S().members.filter(m => m.giftAid).length}</b></div><div class="kpi"><span>Joined this month</span><b>${S().members.filter(m => m.createdAt >= new Date(new Date().getFullYear(), new Date().getMonth(), 1).getTime()).length}</b></div></div>
+     <div class="toolbar"><input id="mq" type="search" placeholder="Search name, email, postcode" value="${esc(ui.memQ || '')}" style="flex:1;min-width:200px"><button class="cw-btn o sm" id="mcsv">⬇ Export all</button><button class="cw-btn o sm" id="mmk">⬇ Email list (opted in only)</button></div>
+     <div class="card2" style="padding:0"><div class="tw"><table class="t"><thead><tr><th>Name</th><th>Contact</th><th>Postcode</th><th>Joined</th><th>Tickets</th><th>Spent</th><th>Donated</th><th>Gift Aid</th><th>Emails</th><th></th></tr></thead><tbody>
+     ${list.map(m => { const x = stat(m); return `<tr><td><b>${esc(m.name)}</b></td><td><a href="mailto:${esc(m.email)}">${esc(m.email)}</a><br><small>${esc(m.phone)}</small></td><td>${esc(m.postcode)}</td><td>${fmtD(m.createdAt)}<br><small>last login ${m.lastLogin ? fmtD(m.lastLogin) : '–'}</small></td><td class="n">${x.t}</td><td class="n">${money(x.spent)}</td><td class="n">${money(x.given)}</td><td>${m.giftAid ? '✅' : '–'}</td><td>${m.marketing ? '✅' : '–'}</td><td><div class="acts"><button class="cw-btn o sm" data-mpw="${m.id}">Reset password</button><button class="cw-btn o sm" data-mdel="${m.id}">Delete</button></div></td></tr>`; }).join('') || '<tr><td colspan="10" style="padding:30px;text-align:center">No members yet. People join from "Log in" on the website.</td></tr>'}
+     </tbody></table></div></div>`;
+    let tm; p.querySelector('#mq').oninput = e => { clearTimeout(tm); tm = setTimeout(() => { ui.memQ = e.target.value; render(); const i = document.getElementById('mq'); i.focus(); i.setSelectionRange(i.value.length, i.value.length); }, 250); };
+    const rows = arr => CW.toCSV([['Name', 'Email', 'Phone', 'Address', 'Postcode', 'Joined', 'Marketing emails', 'Gift Aid', 'Tickets', 'Spent', 'Donated'], ...arr.map(m => { const x = stat(m); return [m.name, m.email, m.phone, m.address, m.postcode, CW.ukDate(m.createdAt), m.marketing ? 'Yes' : 'No', m.giftAid ? 'Yes' : 'No', x.t, x.spent.toFixed(2), x.given.toFixed(2)]; })]);
+    p.querySelector('#mcsv').onclick = () => { CW.download('community-wishes-members.csv', rows(S().members)); CW.log('Member list exported'); CW.save(); };
+    p.querySelector('#mmk').onclick = () => { CW.download('community-wishes-email-list.csv', CW.toCSV([['Name', 'Email'], ...S().members.filter(m => m.marketing).map(m => [m.name, m.email])])); CW.log('Opted-in email list exported'); CW.save(); };
+    p.querySelectorAll('[data-mpw]').forEach(b => b.onclick = async () => { const m = S().members.find(x => x.id === b.dataset.mpw); const np = prompt(`New temporary password for ${m.name}:`, Math.random().toString(36).slice(2, 10)); if (!np) return; try { await CW.memberPassword(m.id, np); CW.log(`Member password reset: ${m.name}`); CW.save(); toast(`Password reset. Tell ${m.name}: ${np}`); } catch (e) { alert(e.message); } });
+    p.querySelectorAll('[data-mdel]').forEach(b => b.onclick = () => { const m = S().members.find(x => x.id === b.dataset.mdel); if (!confirm(`Delete ${m.name}'s account? Their entries and donations are kept for the accounts, but their login and profile are removed.`)) return; S().members = S().members.filter(x => x !== m); CW.log(`Member account deleted: ${m.name}`); CW.save(); render(); });
+  }
+
   /* ================= ACCOUNTS ================= */
   function rangeOf(r, from, to) {
     const d = new Date(), y = d.getFullYear(), m = d.getMonth();
@@ -499,6 +572,45 @@
     };
   }
 
+  /* ================= WEBSITE EDITOR ================= */
+  function website(p) {
+    const site = S().site, t = site.theme || {}, ov = Object.entries(site.overrides || {}).sort((a, b) => (b[1].at || 0) - (a[1].at || 0));
+    const SECTIONS = [['competitions', 'Competitions showcase'], ['about', 'About us'], ['what', 'What we do'], ['journey', 'Our journey'], ['gallery', 'Photo gallery'], ['help', 'Get involved'], ['donate', 'Donate'], ['contact', 'Contact']];
+    const DEF = { brand: '#c0264f', gold: '#f5c451', navy: '#0a1226' };
+    p.innerHTML = `<h1>Website editor</h1><p class="intro">Change the charity website's words, links, pictures, colours and sections. No coding needed.</p>
+     <div class="card2" style="background:var(--cw-navy);color:#fff;border:0"><h2 style="color:#fff">✏️ Visual editor</h2>
+      <p style="color:#c7cfdd;margin:0 0 14px">Opens the real homepage in editing mode. <b>Click any text</b> to type over it (links let you change where they go), or switch to <b>📷 Pictures</b> and click any photo or background to replace it. Everything saves as you go.</p>
+      <a class="cw-btn g" href="index.html?edit=1" target="_blank">Open visual editor ↗</a></div>
+     <form class="card2 cw-f" id="wb"><h2>📣 Announcement bar</h2><p style="color:var(--cw-ink2);margin:0">A message that pops up at the bottom of every page, e.g. "Christmas draw this Friday at 8pm on Facebook Live!"</p>
+      <label class="cw-check"><input type="checkbox" name="on" ${site.banner.on ? 'checked' : ''}> Show the announcement</label>
+      <div class="two"><label>Message<input name="text" value="${esc(site.banner.text)}" maxlength="140"></label><label>Link (optional)<input name="link" value="${esc(site.banner.link)}" placeholder="competitions.html"></label></div>
+      <div><button class="cw-btn p">Save announcement</button></div></form>
+     <form class="card2 cw-f" id="wc"><h2>🎨 Colours</h2>
+      <div class="three">${[['brand', 'Main colour (buttons)'], ['gold', 'Gold / highlight'], ['navy', 'Dark background']].map(([k, l]) => `<label>${l}<input type="color" name="${k}" value="${t[k] || DEF[k]}" style="height:48px;padding:4px"></label>`).join('')}</div>
+      <div class="acts"><button class="cw-btn p">Save colours</button><button type="button" class="cw-btn o" id="wcr">Back to original colours</button></div></form>
+     <form class="card2 cw-f" id="ws"><h2>👁️ Show or hide sections on the homepage</h2>
+      <div class="three">${SECTIONS.map(([id, l]) => `<label class="cw-check"><input type="checkbox" name="${id}" ${site.hidden[id] ? '' : 'checked'}> ${l}</label>`).join('')}</div>
+      <div><button class="cw-btn p">Save sections</button></div></form>
+     <form class="card2 cw-f" id="wt"><h2>🏆 Competitions section wording</h2>
+      <label>Heading<input name="heading" value="${esc(site.comp.heading)}" placeholder="Win prizes. Grant wishes."></label>
+      <label>Intro text<textarea name="intro" rows="2" placeholder="Enter our charity competitions for the chance to win incredible prizes…">${esc(site.comp.intro)}</textarea></label>
+      <div><button class="cw-btn p">Save wording</button></div></form>
+     <div class="card2"><h2>📝 Your changes (${ov.length}) ${ov.length ? '<button class="cw-btn o sm" id="wra">Undo all text & picture changes</button>' : ''}</h2>
+      <div class="tw"><table class="t"><thead><tr><th>When</th><th>Change</th><th></th></tr></thead><tbody>
+      ${ov.map(([path, v]) => `<tr><td>${fmtDT(v.at)}</td><td>${v.src ? `<img src="${v.src}" alt="" style="height:40px;border-radius:6px;vertical-align:middle"> Picture changed` : ''}${'text' in v ? `“${esc(v.text.slice(0, 120))}”` : ''}${v.href ? ` 🔗 ${esc(v.href)}` : ''}</td><td><button class="cw-btn o sm" data-wu="${esc(path)}">Undo</button></td></tr>`).join('') || '<tr><td colspan="3">No text or picture changes yet. Open the visual editor to start.</td></tr>'}
+      </tbody></table></div></div>
+     <div class="msg info">ℹ️ Changes show in this browser straight away. To show them to <b>everyone</b>, go to <a href="#settings" data-go="settings">Settings & publish</a> and download the website file, then upload it to GitHub.</div>`;
+    const savedMsg = m => { CW.siteChanged(); toast(m); render(); };
+    p.querySelector('#wb').onsubmit = e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); site.banner = { on: !!d.on, text: d.text.trim(), link: d.link.trim() }; CW.log('Website announcement updated'); savedMsg('Announcement saved'); };
+    p.querySelector('#wc').onsubmit = e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); site.theme = {}; ['brand', 'gold', 'navy'].forEach(k => { if (d[k].toLowerCase() !== DEF[k]) site.theme[k] = d[k]; }); CW.log('Website colours changed'); savedMsg('Colours saved'); };
+    p.querySelector('#wcr').onclick = () => { site.theme = {}; CW.log('Website colours reset'); savedMsg('Original colours restored'); };
+    p.querySelector('#ws').onsubmit = e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); site.hidden = {}; SECTIONS.forEach(([id]) => { if (!d[id]) site.hidden[id] = true; }); CW.log('Website sections changed'); savedMsg('Sections saved'); };
+    p.querySelector('#wt').onsubmit = e => { e.preventDefault(); const d = Object.fromEntries(new FormData(e.target)); site.comp = { heading: d.heading.trim(), intro: d.intro.trim() }; CW.log('Competitions wording changed'); savedMsg('Wording saved'); };
+    p.querySelectorAll('[data-wu]').forEach(b => b.onclick = () => { CW.clearOverride(b.dataset.wu); CW.log('Website change undone'); toast('Undone'); render(); });
+    const ra = p.querySelector('#wra'); if (ra) ra.onclick = () => { if (confirm('Undo every text, link and picture change on the website?')) { site.overrides = {}; CW.log('All website edits undone'); savedMsg('All changes undone'); } };
+    p.querySelectorAll('[data-go]').forEach(a => a.onclick = e => { e.preventDefault(); go(a.dataset.go); });
+  }
+
   /* ================= TEAM ================= */
   function team(p) {
     const u = me(), mgr = u.role === 'owner' || u.role === 'admin';
@@ -512,7 +624,7 @@
      <div class="card2"><h2>What each role can do</h2><div class="tw"><table class="t"><thead><tr><th>Role</th><th>Can use</th></tr></thead><tbody>
       <tr><td><b>Owner</b></td><td>Everything, including managing the team and roles</td></tr>
       <tr><td><b>Admin</b></td><td>Everything: competitions, entries, draws, accounts, Xero, settings. Can manage volunteers.</td></tr>
-      <tr><td><b>Volunteer</b></td><td>Dashboard, entries & payments, draws, instant wins. <i>No accounts, Xero or settings.</i></td></tr></tbody></table></div></div>
+      <tr><td><b>Volunteer</b></td><td>Dashboard, entries & payments, draws, instant wins, donations. <i>No accounts, Xero or settings.</i></td></tr></tbody></table></div></div>
      <div class="card2" style="padding:0"><div class="tw"><table class="t"><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Last login</th>${mgr ? '<th>Actions</th>' : ''}</tr></thead><tbody>
       ${S().admins.map(a => {
         const canEdit = mgr && a.id !== u.id && (u.role === 'owner' || a.role === 'volunteer');
@@ -553,9 +665,9 @@
   function settings(p) {
     const s = st();
     p.innerHTML = `<h1>Settings & publish</h1><p class="intro">Charity details, payment instructions, publishing and backups.</p>
-     <div class="card2"><h2>Publish competitions to the website</h2>
-      <p style="color:var(--cw-ink2);margin:0 0 12px">Competitions you create are saved in <b>this browser</b>. To show them to everyone visiting the site, download the competitions file and upload it to the website's <code>comp/</code> folder on GitHub (replacing <code>competitions.json</code>).</p>
-      <div class="acts"><button class="cw-btn p" id="pub">⬇ Download competitions.json</button><a class="cw-btn o" href="https://github.com/jamescdrw/community-wishes-leicester/upload/main/comp" target="_blank" rel="noopener">Open GitHub upload page ↗</a></div>
+     <div class="card2"><h2>Publish competitions & website changes</h2>
+      <p style="color:var(--cw-ink2);margin:0 0 12px">Competitions and website edits are saved in <b>this browser</b>. To show them to everyone visiting the site, download the website file and upload it to the website's <code>comp/</code> folder on GitHub (replacing <code>competitions.json</code>).</p>
+      <div class="acts"><button class="cw-btn p" id="pub">⬇ Download website file (competitions.json)</button><a class="cw-btn o" href="https://github.com/jamescdrw/community-wishes-leicester/upload/main/comp" target="_blank" rel="noopener">Open GitHub upload page ↗</a></div>
       <p style="font-size:.84rem;color:var(--cw-ink2);margin-top:10px">Entries, payments and accounts are never included in this file. They stay private in this browser.</p></div>
      <form class="card2 cw-f" id="sf"><h2>Charity & payment details</h2>
       <div class="two"><label>Charity name<input name="charity" value="${esc(s.charity)}"></label><label>Charity number<input name="charityNo" value="${esc(s.charityNo)}"></label></div>
@@ -577,7 +689,12 @@
   }
 
   /* ---------- boot ---------- */
-  function boot() {
+  async function seedDemoAdmin() {
+    // DEMO ONLY: default owner login admin / qwerty123 so the charity can try everything. Change it in Team → Reset password before real use.
+    if (!S().admins.length) { await CW.createAdmin({ name: 'Admin', email: 'admin', password: 'qwerty123', role: 'owner', demo: true }); }
+  }
+  async function boot() {
+    await seedDemoAdmin();
     if (!authed()) return login();
     CW.releaseExpired(); CW.runDueAutoDraws();
     shell(); render();

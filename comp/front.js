@@ -10,6 +10,16 @@
     menu.insertBefore(li, menu.firstChild);
     li.querySelector('a').addEventListener('click', () => { menu.classList.remove('open'); });
   }
+  // member account link + real donate page
+  if (menu && !menu.querySelector('[data-acct]')) {
+    const li = document.createElement('li'); li.innerHTML = '<a href="account.html" data-acct>Log in</a>';
+    const last = menu.lastElementChild; menu.insertBefore(li, last);
+    const m = CW.currentMember(); li.firstChild.textContent = m ? '👤 ' + m.name.split(' ')[0] : 'Log in';
+  }
+  document.querySelectorAll('.donate-link').forEach(a => {
+    const amt = (a.textContent.match(/£(\d+)/) || [])[1];
+    a.href = 'donate.html' + (amt ? '?amount=' + amt : ''); a.removeAttribute('target');
+  });
   // hero CTA
   const cta = document.querySelector('.hero .cta');
   if (cta && !cta.querySelector('.cw-herobtn')) {
@@ -65,8 +75,8 @@
     const fp = phase(feat), fsold = soldCount(feat.id), fpct = Math.min(100, Math.round(fsold / feat.maxTickets * 100));
     const fiw = (feat.instantWins || []).filter(w => !w.wonBy).length;
     sec.innerHTML = `<div class="wrap">
-     <div class="head rv"><span class="eyebrow">Charity competitions</span><h2 class="t">Win prizes. <em>Grant wishes.</em></h2>
-      <p>Enter our charity competitions for the chance to win incredible prizes – and every single ticket helps us grant wishes for people in Leicester facing hardship, illness or disability.</p>
+     <div class="head rv"><span class="eyebrow">Charity competitions</span><h2 class="t">${CW.state.site.comp.heading ? esc(CW.state.site.comp.heading) : 'Win prizes. <em>Grant wishes.</em>'}</h2>
+      <p>${CW.state.site.comp.intro ? esc(CW.state.site.comp.intro) : 'Enter our charity competitions for the chance to win incredible prizes – and every single ticket helps us grant wishes for people in Leicester facing hardship, illness or disability.'}</p>
       ${CW.state.settings.previewMode ? '<span class="cw-preview">Preview – competitions shown are examples</span>' : ''}</div>
      <div class="cw-stats rv"><div><b>${live.length}</b><span>Live competitions</span></div><div><b>${money(prizePot).replace('.00', '')}</b><span>In prizes</span></div><div><b>${iwCount}</b><span>Instant wins</span></div></div>
      <div class="cw-feat rv rv-s">
@@ -120,6 +130,8 @@
 
   CW.runDueAutoDraws();
   render();
-  CW.syncPublished().then(ch => { if (ch) { CW.runDueAutoDraws(); render(); } });
+  CW.applyOverrides(); CW.applySiteGlobal();
+  if (/[?&]edit=1/.test(location.search) && CW.isAdmin()) { const sc = document.createElement('script'); sc.src = 'comp/editor.js?v=' + Date.now(); document.body.appendChild(sc); }
+  CW.syncPublished().then(ch => { if (ch) { CW.runDueAutoDraws(); render(); CW.applyOverrides(); } });
   CW.onChange(render);
 })();

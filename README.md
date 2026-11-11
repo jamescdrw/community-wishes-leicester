@@ -9,6 +9,9 @@ Live preview: https://jamescdrw.github.io/community-wishes-leicester/
 | `competitions.html` | All competitions, and each competition's entry page (`?id=…`) |
 | `terms.html` | Competition terms, including the **free postal entry route** |
 | `admin.html` | Admin (own logins: owner, admins, volunteers via invite code): competitions, entries & payments, draws, instant wins, accounts, Xero export, settings |
+| `donate.html` | Donate page: one-off or monthly, Gift Aid declaration, bank-transfer reference |
+| `account.html` | Member join / log in, My tickets, My wins, My donations, My details |
+| `index.html?edit=1` | Visual website editor (admins only): click text, links or pictures to change them |
 | `draw.html?id=…` | Full-screen **live draw** screen (for Facebook Live) – admin only |
 
 ## How it works (demo mode)
@@ -20,6 +23,9 @@ Live preview: https://jamescdrw.github.io/community-wishes-leicester/
   presses **Paid** when money arrives, and it goes into the accounts automatically.
 - **Prize competition law:** each competition has a skill question and a free postal entry route
   (see `terms.html`). The trustees should review the terms before taking real entries.
+
+## Demo admin login
+Username **admin**, password **qwerty123** (owner). **Change it** in Admin → Team → Reset password before real use.
 
 ## Before going live for real
 1. Admin → Settings: real bank details, postal address, and switch **Preview mode** off.

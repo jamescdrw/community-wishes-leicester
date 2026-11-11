@@ -44,8 +44,9 @@
   const now = () => Date.now();
   const clone = o => JSON.parse(JSON.stringify(o));
 
+  function blankSite() { return { overrides: {}, theme: {}, hidden: {}, banner: { on: false, text: '', link: '' }, comp: { heading: '', intro: '' }, updatedAt: 0 }; }
   function blank() {
-    return { v: 1, settings: clone(DEFAULT_SETTINGS), accounts: clone(DEFAULT_ACCOUNTS), competitions: [], entries: [], ledger: [], audit: [], admins: [], pubLoaded: 0 };
+    return { v: 1, settings: clone(DEFAULT_SETTINGS), accounts: clone(DEFAULT_ACCOUNTS), competitions: [], entries: [], ledger: [], audit: [], admins: [], members: [], donations: [], site: blankSite(), pubLoaded: 0 };
   }
 
   let S;
@@ -54,7 +55,8 @@
     if (!S || S.v !== 1) S = blank();
     S.settings = Object.assign(clone(DEFAULT_SETTINGS), S.settings || {});
     if (!S.accounts || !S.accounts.length) S.accounts = clone(DEFAULT_ACCOUNTS);
-    ['competitions', 'entries', 'ledger', 'audit', 'admins'].forEach(k => { if (!Array.isArray(S[k])) S[k] = []; });
+    ['competitions', 'entries', 'ledger', 'audit', 'admins', 'members', 'donations'].forEach(k => { if (!Array.isArray(S[k])) S[k] = []; });
+    S.site = Object.assign(blankSite(), S.site || {});
   }
   let saveErr = null;
   function save() {
@@ -93,6 +95,7 @@
           S.competitions[i] = merged; changed = true;
         }
       });
+      if (pub.site && (pub.site.updatedAt || 0) > (S.site.updatedAt || 0)) { S.site = Object.assign(blankSite(), pub.site); changed = true; applySiteGlobal(); }
       if (pub.settings && !S.pubLoaded) { ['charity', 'charityNo', 'email', 'phone', 'bankName', 'sortCode', 'accountNo', 'refPrefix', 'postalAddress', 'previewMode', 'holdHours'].forEach(k => { if (k in pub.settings) S.settings[k] = pub.settings[k]; }); changed = true; }
       S.pubLoaded = now();
       if (changed) save();
@@ -102,7 +105,7 @@
   function publishedJSON() {
     const pubSettings = {};
     ['charity', 'charityNo', 'email', 'phone', 'bankName', 'sortCode', 'accountNo', 'refPrefix', 'postalAddress', 'previewMode', 'holdHours'].forEach(k => pubSettings[k] = S.settings[k]);
-    return JSON.stringify({ publishedAt: new Date().toISOString(), settings: pubSettings, competitions: S.competitions.filter(c => c.status !== 'draft') }, null, 1);
+    return JSON.stringify({ publishedAt: new Date().toISOString(), settings: pubSettings, site: S.site, competitions: S.competitions.filter(c => c.status !== 'draft') }, null, 1);
   }
 
   /* ---------- competitions ---------- */
@@ -192,7 +195,7 @@
     const isFree = method === 'postal';
     const e = {
       id: uid('e'), ref: nextRef(), compId, name: name.trim(), email: email.trim(), phone: (phone || '').trim(),
-      tickets: tickets.slice().sort((a, b) => a - b), answerIdx: Number(answerIdx), correct, method,
+      tickets: tickets.slice().sort((a, b) => a - b), answerIdx: Number(answerIdx), correct, method, memberId: (currentMember() || {}).id || null,
       amount: isFree ? 0 : +(tickets.length * c.price).toFixed(2),
       status: (paid || isFree) ? 'paid' : 'pending', paidAt: (paid || isFree) ? now() : null, payMethod: isFree ? 'Free postal entry' : payMethod, createdAt: now(), instantWins: []
     };
@@ -311,6 +314,118 @@
 
   async function sha256(t) { const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)); return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join(''); }
 
+  /* ---------- website editor (colours, banner, text/picture overrides) ---------- */
+  function siteChanged() { S.site.updatedAt = now(); save(); applySiteGlobal(); }
+  function applySiteGlobal() {
+    if (!document.head) return;
+    const t = S.site.theme || {};
+    let st = document.getElementById('cw-site-theme');
+    if (!st) { st = document.createElement('style'); st.id = 'cw-site-theme'; document.head.appendChild(st); }
+    const v = [];
+    if (t.brand) v.push(`--brand:${t.brand};--cw-brand:${t.brand}`);
+    if (t.gold) v.push(`--gold:${t.gold};--cw-gold:${t.gold}`);
+    if (t.navy) v.push(`--navy:${t.navy};--cw-navy:${t.navy}`);
+    st.textContent = v.length ? `:root{${v.join(';')}}` + (t.brand ? `.btn-p,.cw-btn.p{background:${t.brand}!important;animation:none!important}` : '') : '';
+    const b = S.site.banner || {};
+    let el = document.getElementById('cw-annc');
+    if (b.on && b.text) {
+      if (!el) { el = document.createElement('div'); el.id = 'cw-annc'; (document.body || document.documentElement).appendChild(el); }
+      el.style.cssText = 'position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:90;max-width:calc(100% - 32px);display:flex;gap:12px;align-items:center;padding:12px 14px 12px 20px;border-radius:999px;background:var(--cw-navy,#0a1226);color:#fff;font:600 .92rem Inter,sans-serif;box-shadow:0 18px 40px -12px rgba(0,0,0,.6);border:1px solid rgba(245,196,81,.5)';
+      el.innerHTML = `<span>📣 ${esc(b.text)}</span>${b.link ? `<a href="${esc(b.link)}" style="color:#f5c451;font-weight:700;white-space:nowrap">Find out more →</a>` : ''}<button aria-label="Close" style="background:rgba(255,255,255,.12);border:0;color:#fff;width:30px;height:30px;border-radius:50%;cursor:pointer;flex:none">✕</button>`;
+      el.querySelector('button').onclick = () => { el.remove(); try { sessionStorage.setItem('cw_annc_x', b.text); } catch (e) {} };
+      try { if (sessionStorage.getItem('cw_annc_x') === b.text) el.remove(); } catch (e) {}
+    } else if (el) el.remove();
+  }
+  /* path of an element relative to the nearest ancestor with an id */
+  function elPath(el) {
+    const parts = [];
+    while (el && el !== document.body) {
+      if (el.id && !/^cw-/.test(el.id)) { parts.unshift('#' + CSS.escape(el.id)); return parts.join(' > '); }
+      const i = [...el.parentElement.children].indexOf(el) + 1; parts.unshift(`:nth-child(${i})`); el = el.parentElement;
+    }
+    return 'body > ' + parts.join(' > ');
+  }
+  function applyOverrides() {
+    const o = S.site.overrides || {};
+    Object.entries(o).forEach(([path, v]) => {
+      let el; try { el = document.querySelector(path); } catch (e) { return; }
+      if (!el) return;
+      if ('text' in v) el.textContent = v.text;
+      if (v.href) el.setAttribute('href', v.href);
+      if (v.src) { if (el.tagName === 'IMG') el.src = v.src; else el.style.backgroundImage = `url("${v.src}")`; }
+    });
+    Object.entries(S.site.hidden || {}).forEach(([id, h]) => { const el = document.getElementById(id); if (el) el.style.display = h ? 'none' : ''; });
+    document.querySelectorAll('#menu a[href^="#"]').forEach(a => { const id = a.getAttribute('href').slice(1); if (id && S.site.hidden[id]) a.parentElement.style.display = 'none'; });
+  }
+  function setOverride(path, patch) { S.site.overrides[path] = Object.assign(S.site.overrides[path] || {}, patch, { at: now() }); siteChanged(); }
+  function clearOverride(path) { delete S.site.overrides[path]; siteChanged(); }
+
+  /* ---------- members & donations (demo: stored in this browser) ---------- */
+  function currentMember() {
+    try {
+      if (!(+localStorage.getItem('cw_member_until') > now())) return null;
+      const id = localStorage.getItem('cw_member_id');
+      return (S.members || []).find(m => m.id === id) || null;
+    } catch (e) { return null; }
+  }
+  function setMember(id) { try { if (id) { localStorage.setItem('cw_member_until', String(now() + 30 * 864e5)); localStorage.setItem('cw_member_id', id); } else { localStorage.removeItem('cw_member_until'); localStorage.removeItem('cw_member_id'); } } catch (e) {} }
+  async function joinMember(d) {
+    const name = (d.name || '').trim(), email = (d.email || '').trim().toLowerCase();
+    if (!name) throw new Error('Please enter your name.');
+    if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Please enter a valid email.');
+    if ((d.password || '').length < 6) throw new Error('Password must be at least 6 characters.');
+    if (!d.over18) throw new Error('You must be 18 or over to join.');
+    if (S.members.some(m => m.email === email)) throw new Error('You already have an account. Please log in.');
+    const salt = uid('s');
+    const m = { id: uid('m'), name, email, phone: (d.phone || '').trim(), address: (d.address || '').trim(), postcode: (d.postcode || '').trim().toUpperCase(),
+      salt, hash: await sha256(salt + ':' + d.password), marketing: !!d.marketing, giftAid: null, createdAt: now(), lastLogin: now() };
+    S.members.push(m); log(`New member joined: ${name}`); save(); setMember(m.id); return m;
+  }
+  async function loginMember(email, password) {
+    email = (email || '').trim().toLowerCase();
+    const m = S.members.find(x => x.email === email);
+    if (!m || m.hash !== await sha256(m.salt + ':' + password)) throw new Error('Email or password is incorrect.');
+    m.lastLogin = now(); save(); setMember(m.id); return m;
+  }
+  async function memberPassword(id, password) {
+    if ((password || '').length < 6) throw new Error('Password must be at least 6 characters.');
+    const m = S.members.find(x => x.id === id); if (!m) return;
+    m.salt = uid('s'); m.hash = await sha256(m.salt + ':' + password); save();
+  }
+  function updateMember(id, patch) { const m = S.members.find(x => x.id === id); if (!m) return; Object.assign(m, patch); save(); return m; }
+  function memberEntries(m) { return S.entries.filter(e => e.memberId === m.id || e.email.toLowerCase() === m.email); }
+  function memberDonations(m) { return S.donations.filter(d => d.memberId === m.id || d.email.toLowerCase() === m.email); }
+
+  function createDonation(d) {
+    const amount = Math.round((+d.amount || 0) * 100) / 100;
+    if (!(amount >= 1)) throw new Error('Please choose an amount of at least £1.');
+    if (!d.name || !/^\S+@\S+\.\S+$/.test(d.email || '')) throw new Error('Please enter your name and a valid email.');
+    if (d.giftAid && (!d.address || !d.postcode)) throw new Error('For Gift Aid we need your home address and postcode.');
+    const m = currentMember();
+    const don = { id: uid('d'), ref: (S.settings.refPrefix || 'CW') + '-DON-' + (S.donations.length + 1001) + '-' + Math.random().toString(36).slice(2, 5).toUpperCase(),
+      memberId: m ? m.id : null, name: d.name.trim(), email: d.email.trim(), phone: (d.phone || '').trim(), amount, frequency: d.frequency === 'monthly' ? 'monthly' : 'one-off',
+      giftAid: !!d.giftAid, address: (d.address || '').trim(), postcode: (d.postcode || '').trim().toUpperCase(), message: (d.message || '').trim(),
+      status: 'pledged', createdAt: now(), receivedAt: null, payMethod: '' };
+    S.donations.unshift(don);
+    if (m && d.giftAid && !m.giftAid) m.giftAid = { declaredAt: now(), address: don.address, postcode: don.postcode };
+    log(`Donation pledged ${don.ref}: £${amount.toFixed(2)} ${don.frequency}${don.giftAid ? ' + Gift Aid' : ''} – ${don.name}`); save(); return don;
+  }
+  function donationReceived(id, payMethod = 'Bank transfer', date = now()) {
+    const d = S.donations.find(x => x.id === id); if (!d || d.status === 'received') return;
+    d.status = 'received'; d.receivedAt = date; d.payMethod = payMethod;
+    S.ledger.unshift({ id: uid('l'), date, type: 'income', amount: d.amount, payee: d.name, description: `Donation${d.frequency === 'monthly' ? ' (monthly)' : ''}${d.giftAid ? ' – Gift Aid declared' : ''}`,
+      reference: d.ref, account: '201', source: 'donations', donationId: d.id, exported: false });
+    log(`Donation received ${d.ref} £${d.amount.toFixed(2)} (${payMethod})`); save();
+  }
+  function donationUndo(id) {
+    const d = S.donations.find(x => x.id === id); if (!d || d.status !== 'received') return;
+    const l = S.ledger.find(x => x.donationId === d.id);
+    if (l && !l.exported) S.ledger = S.ledger.filter(x => x !== l);
+    else if (l) S.ledger.unshift(Object.assign({}, l, { id: uid('l'), date: now(), type: 'expense', description: 'Reversal: ' + l.description, reversal: true, exported: false }));
+    d.status = 'pledged'; d.receivedAt = null; log(`Donation ${d.ref} marked not received`); save();
+  }
+  function donationCancel(id) { const d = S.donations.find(x => x.id === id); if (!d) return; if (d.status === 'received') donationUndo(id); d.status = 'cancelled'; log(`Donation ${d.ref} cancelled`); save(); }
+
   /* ---------- admin accounts (demo: stored in this browser) ---------- */
   const ROLES = { owner: 'Owner', admin: 'Admin', volunteer: 'Volunteer' };
   function currentAdmin() {
@@ -320,10 +435,10 @@
       return (S.admins || []).find(a => a.id === id && a.active) || null;
     } catch (e) { return null; }
   }
-  async function createAdmin({ name, email, password, role = 'volunteer' }) {
+  async function createAdmin({ name, email, password, role = 'volunteer', demo = false }) {
     name = (name || '').trim(); email = (email || '').trim().toLowerCase();
     if (!name) throw new Error('Please enter a name.');
-    if (!/^\S+@\S+\.\S+$/.test(email)) throw new Error('Please enter a valid email.');
+    if (!demo && !/^\S+@\S+\.\S+$/.test(email)) throw new Error('Please enter a valid email.');
     if ((password || '').length < 6) throw new Error('Password must be at least 6 characters.');
     if (S.admins.some(a => a.email === email)) throw new Error('An account with that email already exists.');
     const salt = uid('s');
@@ -347,6 +462,10 @@
 
   load();
 
+  function labelAccountLinks() { const m = currentMember(); document.querySelectorAll('[data-acct]').forEach(a => a.textContent = m ? '👤 ' + m.name.split(' ')[0] : 'Log in'); }
+  const onReady = () => { labelAccountLinks(); applySiteGlobal(); };
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', onReady); else setTimeout(onReady);
+
   window.CW = {
     get state() { return S; }, save, load, log, onChange: f => listeners.push(f), get saveError() { return saveErr; },
     syncPublished, publishedJSON, comp, takenTickets, soldCount, phase, PHASE_LABEL, upsertComp, deleteComp, setStatus, assignInstantWins,
@@ -355,6 +474,9 @@
     addLedger, updateLedger, deleteLedger, accountName,
     toCSV, ukDate, download, money, esc, art, countdownParts, sha256, uid, THEMES,
     isAdmin() { return !!currentAdmin(); },
+    applySiteGlobal, applyOverrides, elPath, setOverride, clearOverride, siteChanged, blankSite,
+    currentMember, setMember, joinMember, loginMember, memberPassword, updateMember, memberEntries, memberDonations,
+    createDonation, donationReceived, donationUndo, donationCancel,
     currentAdmin, createAdmin, checkLogin, setPassword, ROLES,
     setAdmin(id) { try { if (id) { localStorage.setItem('cw_admin_until', String(Date.now() + 8 * 3600e3)); localStorage.setItem('cw_admin_id', id); } else { localStorage.removeItem('cw_admin_until'); localStorage.removeItem('cw_admin_id'); } } catch (e) {} },
     reset() { localStorage.removeItem(KEY); load(); save(); },

@@ -12,7 +12,7 @@
 <body class="cw-page">
 <header class="cw-top"><div class="in">
  <a class="cw-logo" href="./"><i>★</i><b>Community Wishes<small>LEICESTER</small></b></a>
- <nav><a href="./" class="hide-m">Home</a><a href="competitions.html" class="on">Competitions</a><a href="terms.html">Terms</a></nav>
+ <nav><a href="./" class="hide-m">Home</a><a href="competitions.html" class="on">Competitions</a><a href="donate.html" class="hide-m">Donate</a><a href="account.html" data-acct>Log in</a></nav>
 </div></header>
 <div id="banner"></div>
 <main id="app"></main>
@@ -85,9 +85,10 @@ function detail(c){
      <h2 style="margin-top:22px">2 · Answer the question</h2>
      ${c.question&&c.question.q?`<div class="cw-q"><p style="font-weight:600">${esc(c.question.q)}</p>${c.question.options.map((o,i)=>o?`<label><input type="radio" name="ans" value="${i}"> ${esc(o)}</label>`:'').join('')}</div>`:'<p style="color:var(--cw-ink2)">No question for this competition.</p>'}
      <h2 style="margin-top:22px">3 · Your details</h2>
+     ${CW.currentMember()?`<p style="margin:-4px 0 10px;color:var(--cw-ink2)">Logged in as <b>${esc(CW.currentMember().name)}</b>. Your tickets will appear in <a href="account.html">My account</a>.</p>`:`<p style="margin:-4px 0 10px;color:var(--cw-ink2)"><a href="account.html?back=${encodeURIComponent('competitions.html?id='+c.id)}">Log in or join free</a> to fill this in automatically and track your tickets.</p>`}
      <form class="cw-f" id="ef" novalidate>
-      <label>Full name<input name="name" autocomplete="name" required></label>
-      <div class="two"><label>Email<input name="email" type="email" autocomplete="email" required></label><label>Phone<input name="phone" type="tel" autocomplete="tel"></label></div>
+      <label>Full name<input name="name" autocomplete="name" required value="${esc((CW.currentMember()||{}).name||'')}"></label>
+      <div class="two"><label>Email<input name="email" type="email" autocomplete="email" required value="${esc((CW.currentMember()||{}).email||'')}"></label><label>Phone<input name="phone" type="tel" autocomplete="tel" value="${esc((CW.currentMember()||{}).phone||'')}"></label></div>
       <label class="cw-check"><input type="checkbox" name="age" required> I am 18 or over and a UK resident</label>
       <label class="cw-check"><input type="checkbox" name="terms" required> I agree to the <a href="terms.html" target="_blank">competition terms</a></label>
       <div class="cw-err" id="err" role="alert"></div>

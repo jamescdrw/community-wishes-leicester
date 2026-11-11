@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My account | Community Wishes (Leicester)</title>
+<meta name="theme-color" content="#0a1226">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700;900&family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="comp/comp.css">
+<style>
+.acc{max-width:980px;margin:-40px auto 0;position:relative;padding:0 20px}
+.auth{max-width:480px;margin:-40px auto 0;position:relative;padding:0 20px}
+.atabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px}
+.atabs button{padding:11px 18px;border-radius:999px;border:1px solid var(--cw-line);background:#fff;font:600 .92rem Inter;cursor:pointer;box-shadow:0 10px 20px -15px rgba(0,0,0,.4)}
+.atabs button[aria-pressed=true]{background:var(--cw-brand);color:#fff;border-color:var(--cw-brand)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stats div{background:#fff;border:1px solid var(--cw-line);border-radius:18px;padding:16px}
+.stats span{font-size:.74rem;letter-spacing:.08em;text-transform:uppercase;color:var(--cw-ink2);font-weight:600}
+.stats b{display:block;font:700 1.5rem Inter;margin-top:2px}
+.tk{display:grid;grid-template-columns:70px 1fr auto;gap:14px;align-items:center;padding:14px;border:1px solid var(--cw-line);border-radius:18px;background:#fff;margin-bottom:10px}
+.tk .th{width:70px;height:70px;border-radius:14px;overflow:hidden;position:relative}.tk .th img,.tk .th .cw-art{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}.tk .th .cw-art span{font-size:2rem}
+.tk h3{font:700 1rem Inter;margin:0 0 4px}.tk small{color:var(--cw-ink2)}
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font:700 .72rem Inter;white-space:nowrap}
+.p-paid,.p-received{background:#e6f7ee;color:#1f7a45}.p-pending,.p-pledged{background:#fff4d6;color:#8a5a00}.p-cancelled{background:#eee;color:#888}.p-win{background:#ffe3ea;color:var(--cw-brand)}
+@media (max-width:700px){.stats{grid-template-columns:1fr 1fr}.tk{grid-template-columns:56px 1fr}.tk .th{width:56px;height:56px}.tk>div:last-child{grid-column:1/-1}}
+</style>
+</head>
+<body class="cw-page">
+<header class="cw-top"><div class="in">
+ <a class="cw-logo" href="./"><i>★</i><b>Community Wishes<small>LEICESTER</small></b></a>
+ <nav><a href="./" class="hide-m">Home</a><a href="competitions.html">Competitions</a><a href="donate.html">Donate</a><a href="account.html" class="on" data-acct>Log in</a></nav>
+</div></header>
+<section class="cw-hero"><div class="cw-wrap"><h1 id="ht">My account</h1><p id="hs">Your competition tickets, wins and donations in one place.</p></div></section>
+<main id="app"></main>
+<footer class="cw-foot"><div class="cw-wrap"><p><b style="color:#fff" data-s="charity"></b> · Registered charity <span data-s="charityNo"></span> · <a href="terms.html">Terms</a></p>
+ <p style="margin-top:8px;font-size:.8rem">Demo mode: accounts are saved in this browser only.</p></div></footer>
+<script src="comp/store.js"></script>
+<script>
+const {esc,money,art,phase,PHASE_LABEL}=CW,app=document.getElementById('app');
+let view=(location.hash.slice(1)||'tickets');
+const fmtD=t=>t?new Date(t).toLocaleDateString('en-GB',{day:'numeric',month:'short',year:'numeric'}):'–';
+function fill(){const s=CW.state.settings;document.querySelectorAll('[data-s]').forEach(e=>e.textContent=s[e.dataset.s]||'');
+ const m=CW.currentMember();document.querySelectorAll('[data-acct]').forEach(a=>a.textContent=m?'👤 '+m.name.split(' ')[0]:'Log in');}
+
+function auth(mode){
+ mode=mode||(view==='join'?'join':'login');
+ document.getElementById('ht').textContent=mode==='join'?'Join Community Wishes':'Welcome back';
+ document.getElementById('hs').textContent=mode==='join'?'Free membership: track your tickets, wins and donations, and enter competitions faster.':'Log in to see your tickets, wins and donations.';
+ app.innerHTML=`<div class="auth"><div class="cw-panel"><div class="cw-tabs" style="margin-bottom:16px"><button type="button" data-m="login" aria-pressed="${mode==='login'}">Log in</button><button type="button" data-m="join" aria-pressed="${mode==='join'}">Join free</button></div>
+  <form class="cw-f" id="af" novalidate>
+   ${mode==='join'?'<label>Full name *<input name="name" autocomplete="name" required></label>':''}
+   <label>Email *<input name="email" type="email" autocomplete="email" required></label>
+   <label>Password *<input name="password" type="password" autocomplete="${mode==='join'?'new-password':'current-password'}" required></label>
+   ${mode==='join'?`<label>Phone<input name="phone" type="tel" autocomplete="tel"></label>
+   <div class="two"><label>Home address<input name="address" autocomplete="street-address"></label><label>Postcode<input name="postcode" autocomplete="postal-code"></label></div>
+   <label class="cw-check"><input type="checkbox" name="over18"> I am 18 or over *</label>
+   <label class="cw-check"><input type="checkbox" name="marketing"> Email me about new competitions, events and how my support helps (unsubscribe any time)</label>`:''}
+   <div class="cw-err" id="err" role="alert"></div>
+   <button class="cw-btn p" style="width:100%">${mode==='join'?'Create my account':'Log in'}</button>
+   ${mode==='login'?'<p style="font-size:.84rem;color:var(--cw-ink2);text-align:center;margin:0">Forgotten your password? Contact us and we\'ll reset it.</p>':''}
+  </form></div></div>`;
+ app.querySelectorAll('[data-m]').forEach(b=>b.onclick=()=>auth(b.dataset.m));
+ document.getElementById('af').onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
+  try{if(mode==='join'){if(!(d.password||'').length)throw new Error('Please choose a password.');await CW.joinMember(d)}else await CW.loginMember(d.email,d.password);
+   const back=new URLSearchParams(location.search).get('back');if(back&&/^[a-z]+\.html/.test(back))return location.href=back;
+   view='tickets';history.replaceState(null,'','#tickets');render()}catch(err){document.getElementById('err').textContent=err.message}};
+}
+
+function render(){
+ fill();const m=CW.currentMember();
+ if(!m)return auth();
+ if(['join','login'].includes(view))view='tickets';
+ const ents=CW.memberEntries(m),dons=CW.memberDonations(m);
+ const tickets=ents.filter(e=>e.status!=='cancelled').reduce((n,e)=>n+e.tickets.length,0);
+ const wins=[];ents.forEach(e=>{const c=CW.comp(e.compId);if(!c)return;if(c.winner&&c.winner.entryId===e.id)wins.push({c,e,what:'🏆 '+(c.prize||c.title),t:c.winner.ticket});(c.instantWins||[]).forEach(w=>{if(w.wonBy===e.id)wins.push({c,e,what:'⚡ '+w.prize,t:w.ticket})})});
+ const given=dons.filter(d=>d.status==='received').reduce((n,d)=>n+d.amount,0);
+ document.getElementById('ht').textContent='Hi '+m.name.split(' ')[0]+' 👋';
+ document.getElementById('hs').textContent='Member since '+fmtD(m.createdAt)+'. Thank you for supporting Community Wishes.';
+ app.innerHTML=`<div class="acc">
+  <div class="atabs">${[['tickets','🎟️ My tickets'],['wins','🏆 My wins'],['donations','💛 My donations'],['details','⚙️ My details']].map(([k,l])=>`<button data-v="${k}" aria-pressed="${view===k}">${l}</button>`).join('')}<button id="out" style="margin-left:auto">Log out</button></div>
+  <div class="stats"><div><span>Tickets</span><b>${tickets}</b></div><div><span>Wins</span><b>${wins.length}</b></div><div><span>Donated</span><b>${money(given)}</b></div><div><span>Gift Aid</span><b style="font-size:1.05rem;margin-top:8px">${m.giftAid?'✅ Declared':'Not declared'}</b></div></div>
+  <div id="v"></div></div>`;
+ app.querySelectorAll('[data-v]').forEach(b=>b.onclick=()=>{view=b.dataset.v;history.replaceState(null,'','#'+view);render()});
+ document.getElementById('out').onclick=()=>{CW.setMember(null);view='login';history.replaceState(null,'','#login');render()};
+ const v=document.getElementById('v');
+ if(view==='tickets'){
+  v.innerHTML=ents.length?ents.map(e=>{const c=CW.comp(e.compId)||{title:'(removed competition)',icon:'🎁',theme:0};const p=c.id?phase(c):'';
+   return `<div class="tk"><div class="th">${art(c)}</div><div><h3>${esc(c.title)}</h3><small>${fmtD(e.createdAt)} · ref ${esc(e.ref)} · ${c.id?PHASE_LABEL[p]:''}${e.correct?'':' · ❌ wrong answer, not in the draw'}</small>
+    <div class="cw-chips" style="margin-top:8px">${e.tickets.map(t=>`<span class="cw-chip ${(c.instantWins||[]).some(w=>w.ticket===t&&w.wonBy===e.id)||(c.winner&&c.winner.ticket===t)?'w':''}">#${t}</span>`).join('')}</div></div>
+    <div style="text-align:right"><span class="pill p-${e.status}">${e.status==='pending'?'Awaiting payment':e.status==='paid'?'Paid':'Cancelled'}</span><br><b>${money(e.amount)}</b>${c.id?`<br><a href="competitions.html?id=${encodeURIComponent(c.id)}" style="font-size:.84rem">View →</a>`:''}</div></div>`}).join('')
+   :`<div class="cw-panel" style="text-align:center"><h2>No tickets yet</h2><p style="color:var(--cw-ink2)">Enter a competition and your tickets will appear here.</p><a class="cw-btn p" href="competitions.html" style="margin-top:12px">See competitions</a></div>`;
+  if(ents.some(e=>e.status==='pending'))v.insertAdjacentHTML('afterbegin',`<div class="cw-panel" style="margin-bottom:12px;background:#fff8e1;border-color:#f3d27a"><b>Some tickets are awaiting payment.</b> Pay by bank transfer to <b>${esc(CW.state.settings.bankName)}</b>, sort code <b>${esc(CW.state.settings.sortCode)}</b>, account <b>${esc(CW.state.settings.accountNo)}</b>, using the ticket reference.</div>`);
+ }
+ if(view==='wins'){
+  v.innerHTML=wins.length?wins.map(w=>`<div class="tk"><div class="th">${art(w.c)}</div><div><h3>${esc(w.what)}</h3><small>${esc(w.c.title)} · ticket #${w.t}</small></div><div><span class="pill p-win">Winner!</span>${w.e.status!=='paid'?'<br><small>Prize released once payment is received</small>':''}</div></div>`).join('')
+   :`<div class="cw-panel" style="text-align:center"><h2>No wins yet</h2><p style="color:var(--cw-ink2)">Good luck! Instant wins and draw wins will show here.</p></div>`;
+ }
+ if(view==='donations'){
+  v.innerHTML=`<div class="cw-panel" style="margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap"><span>Every gift helps grant a wish. ${m.giftAid?'Gift Aid adds 25% to your donations.':''}</span><a class="cw-btn g" href="donate.html">Make a donation</a></div>`+
+   (dons.length?`<div class="cw-panel" style="padding:0;overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:.92rem"><thead><tr style="text-align:left;color:var(--cw-ink2);font-size:.75rem;text-transform:uppercase;letter-spacing:.06em"><th style="padding:12px">Date</th><th>Reference</th><th>Type</th><th>Gift Aid</th><th style="text-align:right">Amount</th><th style="padding-right:12px">Status</th></tr></thead><tbody>
+   ${dons.map(d=>`<tr style="border-top:1px solid var(--cw-line)"><td style="padding:12px">${fmtD(d.createdAt)}</td><td>${esc(d.ref)}</td><td>${d.frequency==='monthly'?'Monthly':'One-off'}</td><td>${d.giftAid?'✅ +'+money(d.amount*.25):'–'}</td><td style="text-align:right"><b>${money(d.amount)}</b></td><td style="padding:0 12px"><span class="pill p-${d.status}">${d.status==='pledged'?'Awaiting payment':d.status==='received'?'Received – thank you!':'Cancelled'}</span></td></tr>`).join('')}</tbody></table></div>`
+   :'<div class="cw-panel" style="text-align:center"><p style="color:var(--cw-ink2)">No donations yet.</p></div>');
+ }
+ if(view==='details'){
+  v.innerHTML=`<form class="cw-panel cw-f" id="pf"><h2>My details</h2>
+   <div class="two"><label>Full name<input name="name" value="${esc(m.name)}" required></label><label>Email<input value="${esc(m.email)}" disabled></label></div>
+   <div class="three"><label>Phone<input name="phone" value="${esc(m.phone)}"></label><label>Home address<input name="address" value="${esc(m.address)}"></label><label>Postcode<input name="postcode" value="${esc(m.postcode)}"></label></div>
+   <label class="cw-check"><input type="checkbox" name="marketing" ${m.marketing?'checked':''}> Email me about new competitions and events</label>
+   <label class="cw-check"><input type="checkbox" name="giftAid" ${m.giftAid?'checked':''}> Gift Aid: I am a UK taxpayer and want ${esc(CW.state.settings.charity)} to treat all my donations (past 4 years and future) as Gift Aid donations. I'll tell the charity if this changes.</label>
+   <div class="cw-err" id="perr"></div><div><button class="cw-btn p">Save my details</button></div></form>
+   <form class="cw-panel cw-f" id="cp" style="margin-top:16px"><h2>Change password</h2><div class="two"><label>New password<input type="password" name="p" autocomplete="new-password"></label><label>Confirm<input type="password" name="p2" autocomplete="new-password"></label></div><div class="cw-err" id="cperr"></div><div><button class="cw-btn o">Change password</button></div></form>`;
+  document.getElementById('pf').onsubmit=e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));
+   if(d.giftAid&&(!d.address||!d.postcode))return document.getElementById('perr').textContent='Gift Aid needs your home address and postcode.';
+   CW.updateMember(m.id,{name:d.name.trim()||m.name,phone:d.phone.trim(),address:d.address.trim(),postcode:d.postcode.trim().toUpperCase(),marketing:!!d.marketing,giftAid:d.giftAid?(m.giftAid||{declaredAt:Date.now(),address:d.address,postcode:d.postcode}):null});
+   CW.log(`Member ${m.name} updated their details`);CW.save();render();document.getElementById('perr').textContent='';
+   v.insertAdjacentHTML('afterbegin','<div class="cw-panel" style="margin-bottom:12px;background:#e6f7ee;border-color:#bfe8cf">✓ Details saved</div>')};
+  document.getElementById('cp').onsubmit=async e=>{e.preventDefault();const d=Object.fromEntries(new FormData(e.target));const er=document.getElementById('cperr');
+   if(d.p!==d.p2)return er.textContent='Passwords do not match.';try{await CW.memberPassword(m.id,d.p);e.target.reset();er.style.color='var(--cw-ok)';er.textContent='✓ Password changed'}catch(err){er.textContent=err.message}};
+ }
+}
+render();CW.syncPublished();
+addEventListener('hashchange',()=>{view=location.hash.slice(1)||'tickets';render()});
+</script>
+</body>
+</html>
