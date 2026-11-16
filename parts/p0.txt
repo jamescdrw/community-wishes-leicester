@@ -172,7 +172,7 @@ header.s{background:rgba(10,18,38,.72);backdrop-filter:blur(18px) saturate(1.4);
 .pay a:hover{transform:translateY(-3px);box-shadow:0 10px 24px -8px rgba(0,0,0,.5)}
 .secure{margin-top:24px;font-size:.88rem;color:#e7dde3}
 /* contact */
-.cgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:20px}
+.cgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:20px}
 .cc{display:block;text-decoration:none;background:rgba(255,255,255,.75);backdrop-filter:blur(12px);border:1px solid var(--line);border-radius:22px;padding:30px;transition:.35s}
 .cc:hover{transform:translateY(-6px);box-shadow:var(--sh);border-color:transparent}
 .cc .ic{width:52px;height:52px;border-radius:15px;display:grid;place-items:center;background:var(--navy);color:var(--gold);font-size:1.3rem;margin-bottom:18px;transition:.35s}

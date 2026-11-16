@@ -75,6 +75,7 @@ tJemSdUKLZqnAgU/cISaJ2bmZMpMYmhYYOcSgNOtlN2KQJGGHECdJOcIDuhm+DphOGnz/DlgfrkZQ4DA
   <div class="head rv"><span class="eyebrow">Contact</span><h2 class="t">Get in touch</h2><p>We'd love to hear from you.</p></div>
   <div class="cgrid">
    <a class="cc rv" href="mailto:gez.communitywishes@gmail.com"><div class="ic" aria-hidden="true">✉</div><h3>Email</h3><p>gez.communitywishes@gmail.com</p></a>
+   <div class="cc rv" style="--dl:.04s"><div class="ic" aria-hidden="true">⌂</div><h3>Address</h3><p>45 Oakland Road, Leicester, LE2 6AN</p></div>
    <a class="cc rv" style="--dl:.08s" href="tel:07805575955"><div class="ic" aria-hidden="true">☏</div><h3>Phone</h3><p>07805 575955 (Gez Varney)</p></a>
    <a class="cc rv" style="--dl:.16s" href="https://www.facebook.com/groups/856683141129907/" target="_blank" rel="noopener"><div class="ic" aria-hidden="true">f</div><h3>Facebook</h3><p>Join our community group</p></a>
    <a class="cc rv" style="--dl:.24s" href="https://www.instagram.com/community_wishes_leicester_/" target="_blank" rel="noopener"><div class="ic" aria-hidden="true">◎</div><h3>Instagram</h3><p>@community_wishes_leicester_</p></a>
@@ -87,7 +88,7 @@ tJemSdUKLZqnAgU/cISaJ2bmZMpMYmhYYOcSgNOtlN2KQJGGHECdJOcIDuhm+DphOGnz/DlgfrkZQ4DA
   <div class="fgrid">
    <div><p class="fbig">Community Wishes</p><p>Granting wishes to people suffering financial hardship, illness or disability, regardless of youth or age.</p><p style="margin-top:20px"><a class="btn btn-p donate-link" href="#donate" style="padding:12px 24px">Donate ♥</a></p></div>
    <div><h4>Explore</h4><ul><li><a href="#about">About us</a></li><li><a href="#what">What we do</a></li><li><a href="#gallery">Gallery</a></li><li><a href="https://communitywishesleicester.godaddysites.com/request-a-wish">Request a wish</a></li><li><a href="https://communitywishesleicester.godaddysites.com/news-%26-events">News & events</a></li></ul></div>
-   <div><h4>Connect</h4><ul><li><a href="mailto:gez.communitywishes@gmail.com">Email us</a></li><li><a href="tel:07805575955">07805 575955</a></li><li><a href="https://www.facebook.com/groups/856683141129907/">Facebook</a></li><li><a href="https://www.instagram.com/community_wishes_leicester_/">Instagram</a></li></ul></div>
+   <div><h4>Connect</h4><ul><li>45 Oakland Road, Leicester, LE2 6AN</li><li><a href="mailto:gez.communitywishes@gmail.com">Email us</a></li><li><a href="tel:07805575955">07805 575955</a></li><li><a href="https://www.facebook.com/groups/856683141129907/">Facebook</a></li><li><a href="https://www.instagram.com/community_wishes_leicester_/">Instagram</a></li></ul></div>
   </div>
   <div class="legal"><span>Registered charity number: 1196244</span><span>© <span id="yr">2026</span> Community Wishes (Leicester). All rights reserved.</span></div>
  </div>
